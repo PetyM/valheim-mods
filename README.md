@@ -2,16 +2,19 @@
 
 ## LevelEasily
 Nová položka v menu motyky **Srovnat plochu**. Náhled ukáže obdélník přichycený na mřížku metrů
-(vrcholy heightmapy) s body obarvenými podle odchylky od cílové výšky:
-zelená = rovné, červená = ukopne se, modrá = dosype se. Klik srovná celou plochu najednou a natře ji hlínou
-(jako vanilla Level ground, tráva na ní neroste). Pod křížkem je cena a nápověda kláves.
+(vrcholy heightmapy) s body obarvenými podle toho, co se s nimi stane:
+zelená = rovné, červená = ukopne se, modrá = dosype se, fialová = mimo dosah ±8 m od původního terénu,
+šedá = pod stavbou nebo rostlinou (vynechá se), tmavě červená = chybí krumpáč, ztmavené = nestačí zdroje.
+Klik srovná plochu najednou a natře ji hlínou (jako vanilla Level ground, tráva na ní neroste). Pod křížkem je cena a nápověda.
 
 - **Šipky** mění velikost (vlevo/vpravo = šířka z pohledu kamery, nahoru/dolů = délka), výchozí 4 × 4 m, nejvíc 16 m.
-- Cíl je výška nohou. **L** zamkne cíl na horní plochu kusu stavby pod kurzorem (jinak nohy) a zároveň mřížku,
+- Cíl je terén pod hráčem (jako vanilla). **L** zamkne cíl na horní plochu kusu stavby pod kurzorem a zároveň mřížku,
   takže další plochy navazují přesně vedle sebe. **PageUp/PageDown** posune cíl o 0,1 m (a zamkne).
-- Cena: počet švihů = změněné vrcholy ÷ vrcholy jednoho vanilla Level ground; za každý švih výdrž a opotřebení
-  jako při vanilla použití motyky. Dosypání stojí kámen podle poměru vanilla Raise ground. Pod křížkem je vidět předem.
-- Respektuje wardy a zóny bez stavění. Ostatní hráči ani server mód mít nemusí.
+- Cena jako ruční práce (podrobně `LevelEasily/SPEC.md`): švihy motyky (asi 1 na 4 body), odkopání hlouběji než 1 m
+  údery krumpáčem z inventáře (výdrž a jeho opotřebení), dosypání nad 1 m nebo nad terén pod hráčem kámen podle Raise ground.
+  Motyka je pak zablokovaná na dobu, kterou by práce trvala. Na co zdroje nestačí, to se nesrovná (od nejbližších bodů).
+- Obdělaná a dlážděná půda se srovná, ale nepřetře (volba v configu). V Ashlands nevznikne láva.
+- Respektuje wardy a zóny bez stavění v celé ploše a vanilla omezení motyky. Ostatní hráči ani server mód mít nemusí.
 - Nastavení: `BepInEx/config/michal.leveleasily.cfg` (i v Configuration Manageru).
 
 ## RecipeBrowser

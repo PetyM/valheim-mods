@@ -51,8 +51,9 @@ internal sealed class Budget
             PickSeconds = pickSeconds,
         };
         budget.Pickaxe = player.GetInventory().GetAllItems()
-            .Where(i => rates.DigVolumePerHit(i) > 0 && (!i.m_shared.m_useDurability || i.m_durability > 0))
-            .OrderByDescending(i => i.m_shared.m_useDurability ? i.m_durability : float.PositiveInfinity)
+            .Where(i => i.m_shared.m_skillType == Skills.SkillType.Pickaxes && rates.DigVolumePerHit(i) > 0 &&
+                        (!i.m_shared.m_useDurability || i.m_durability > 0))
+            .OrderByDescending(i => HitsLeft(i) * rates.DigVolumePerHit(i))
             .FirstOrDefault();
         if (budget.Pickaxe != null)
         {
@@ -63,6 +64,13 @@ internal sealed class Budget
             budget.PickDurability = pick.m_shared.m_useDurability ? pick.m_durability : float.PositiveInfinity;
         }
         return budget;
+    }
+
+    /// <summary>Kolik úderů nástroj ještě vydrží.</summary>
+    private static float HitsLeft(ItemDrop.ItemData tool)
+    {
+        float wear = tool.m_shared.m_useDurabilityDrain * Game.m_durabilityRate;
+        return tool.m_shared.m_useDurability && wear > 0 ? tool.m_durability / wear : float.PositiveInfinity;
     }
 
     /// <summary>Stejný výpočet jako <c>Attack.GetAttackStamina</c> pro útok nástrojem, který není v ruce.</summary>
@@ -96,13 +104,14 @@ internal sealed class Budget
     }
 
     /// <summary>Vybere vrcholy, na které zdroje stačí, od nejbližších k hráči, a vrátí jejich cenu.</summary>
-    public (Cost cost, Shortage shortage) Select(AreaPlan plan, Vector3 player, VanillaRates rates)
+    /// <param name="allowed">Jen vrcholy, které smí zápis změnit (např. jen v převzatých zónách).</param>
+    public (Cost cost, Shortage shortage) Select(AreaPlan plan, Vector3 player, VanillaRates rates, System.Func<VertexPlan, bool> allowed = null)
     {
-        var wanted = new List<VertexPlan>();
+        wanted.Clear();
         foreach (var v in plan.Vertices)
         {
             v.Selected = false;
-            if (v.Wanted) wanted.Add(v);
+            if (v.Wanted && (allowed == null || allowed(v))) wanted.Add(v);
         }
         wanted.Sort((a, b) => Flat(a.Point - player).CompareTo(Flat(b.Point - player)));
 
@@ -122,6 +131,8 @@ internal sealed class Budget
         }
         return (cost, Shortage.None);
     }
+
+    private static readonly List<VertexPlan> wanted = new();
 
     private static float Flat(Vector3 v) => v.x * v.x + v.z * v.z;
 }

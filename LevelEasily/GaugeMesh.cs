@@ -42,7 +42,7 @@ internal sealed class GaugeMesh
             indices.Add(vertices.Count); vertices.Add(centre + new Vector3(-HalfSize, 0, HalfSize));
             indices.Add(vertices.Count); vertices.Add(centre + new Vector3(HalfSize, 0, HalfSize));
             indices.Add(vertices.Count); vertices.Add(centre + new Vector3(HalfSize, 0, -HalfSize));
-            colours.AddRange(new[] { colour, colour, colour, colour });
+            for (int i = 0; i < 4; i++) colours.Add(colour);
         }
         mesh.Clear();
         mesh.SetVertices(vertices);

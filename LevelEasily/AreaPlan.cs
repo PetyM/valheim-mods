@@ -28,7 +28,7 @@ internal sealed class AreaPlan
     private const float HoeReach = 1f;
     private const float PieceMargin = 0.45f;
     private const float PieceSlack = 0.5f;
-    private const int VanillaLevelLimit = 8;
+    public const int VanillaLevelLimit = 8;
     private static readonly Collider[] Overlaps = new Collider[32];
 
     public RectInt Area { get; }
@@ -60,25 +60,15 @@ internal sealed class AreaPlan
     public static AreaPlan Measure(RectInt area, float target, bool freeFill, bool hasPickaxe, GameObject ghost, int pieceMask)
     {
         var plan = new AreaPlan(area, target, freeFill);
+        var compilers = new Dictionary<Heightmap, TerrainComp>();
         foreach (var grid in VertexPositions(area))
         {
             var point = new Vector3(grid.x, 0, grid.y);
             var heightmap = Heightmap.FindHeightmap(point);
             if (!heightmap || !heightmap.GetWorldHeight(point, out point.y)) continue;
-
-            float levelDelta = 0, smoothDelta = 0;
-            var compiler = TerrainComp.FindTerrainCompiler(heightmap.transform.position);
-            if (compiler && compiler.m_initialized)
-            {
-                heightmap.WorldToVertex(point, out int x, out int y);
-                int index = y * (compiler.m_width + 1) + x;
-                if (index >= 0 && index < compiler.m_levelDelta.Length)
-                {
-                    levelDelta = compiler.m_levelDelta[index];
-                    smoothDelta = compiler.m_smoothDelta[index];
-                }
-            }
-            float baseHeight = point.y - levelDelta - smoothDelta;
+            if (!compilers.TryGetValue(heightmap, out var compiler))
+                compilers[heightmap] = compiler = TerrainComp.FindTerrainCompiler(heightmap.transform.position);
+            var (baseHeight, smoothDelta) = BaseHeight(heightmap, compiler, point);
             float goal = Mathf.Clamp(target, baseHeight - VanillaLevelLimit, baseHeight + VanillaLevelLimit);
             var vertex = new VertexPlan
             {
@@ -92,6 +82,21 @@ internal sealed class AreaPlan
             plan.byGrid[grid] = vertex;
         }
         return plan;
+    }
+
+    /// <summary>
+    /// Výška před úpravami hráčů (proti ní hra ořezává ±8 m) a dosavadní smooth delta motyky.
+    /// Hra ořezává součet delt, ne každou zvlášť, proto clamp součtu.
+    /// </summary>
+    public static (float baseHeight, float smoothDelta) BaseHeight(Heightmap heightmap, TerrainComp compiler, Vector3 point)
+    {
+        if (!compiler || !compiler.m_initialized) return (point.y, 0);
+        heightmap.WorldToVertex(point, out int x, out int y);
+        int pitch = compiler.m_width + 1;
+        if (x < 0 || y < 0 || x >= pitch || y >= pitch) return (point.y, 0);
+        int index = y * pitch + x;
+        float level = compiler.m_levelDelta[index], smooth = compiler.m_smoothDelta[index];
+        return (point.y - Mathf.Clamp(level + smooth, -VanillaLevelLimit, VanillaLevelLimit), smooth);
     }
 
     private static void Classify(VertexPlan v, float smoothDelta, bool freeFill, bool hasPickaxe, GameObject ghost, int pieceMask)

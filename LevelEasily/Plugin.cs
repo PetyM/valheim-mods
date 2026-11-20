@@ -21,6 +21,7 @@ public sealed class Plugin : BaseUnityPlugin
     private const float FullColourDeviation = 1f;
     private const float AimDistance = 50f;
     private const float MeasureInterval = 0.5f;
+    private const float TargetTolerance = 0.02f;
     private const float ClaimWait = 0.5f;
     private const float PlayerClearance = 1.5f;
     private const float PlayerSafeRise = 0.5f;
@@ -111,7 +112,7 @@ public sealed class Plugin : BaseUnityPlugin
         var area = SnapArea(ghost.transform.position);
         float ground = GroundUnder(player), target = lockedHeight ?? ground;
         bool freeFill = target <= ground + AreaPlan.ChangeThreshold, hasPickaxe = budget.Pickaxe != null;
-        if (plan == null || plan.Area != area || !Mathf.Approximately(plan.Target, target) || plan.FreeFill != freeFill ||
+        if (plan == null || plan.Area != area || Mathf.Abs(plan.Target - target) > TargetTolerance || plan.FreeFill != freeFill ||
             Time.time - lastMeasure > MeasureInterval)
         {
             plan = AreaPlan.Measure(area, target, freeFill, hasPickaxe, ghost, pieceMask);
@@ -162,10 +163,13 @@ public sealed class Plugin : BaseUnityPlugin
     private float AimedHeight(Player player)
     {
         var camera = GameCamera.instance.transform;
-        return Physics.Raycast(camera.position, camera.forward, out var hit, AimDistance, aimMask) &&
-               hit.collider.GetComponentInParent<Piece>()
-            ? hit.point.y
-            : GroundUnder(player);
+        if (!Physics.Raycast(camera.position, camera.forward, out var hit, AimDistance, aimMask) ||
+            !hit.collider.GetComponentInParent<Piece>())
+            return GroundUnder(player);
+        // Horní plocha zasaženého kusu v místě zásahu, i když kurzor míří na jeho bok.
+        var bounds = hit.collider.bounds;
+        var down = new Ray(new Vector3(hit.point.x, bounds.max.y + 1, hit.point.z), Vector3.down);
+        return hit.collider.Raycast(down, out var top, bounds.size.y + 2) ? top.point.y : hit.point.y;
     }
 
     private RectInt SnapArea(Vector3 cursor)
@@ -246,13 +250,23 @@ public sealed class Plugin : BaseUnityPlugin
                 : plan.Count(VertexState.NeedsPickaxe) > 0 ? "Bez krumpáče v inventáři to nejde" : "Plocha už je rovná");
             return;
         }
-        foreach (var v in plan.Vertices.Where(v => v.Wanted))
-        {
-            if (Location.IsInsideNoBuildLocation(v.Point)) { Refuse(player, "$msg_nobuildzone"); return; }
-            if (!PrivateArea.CheckAccess(v.Point)) { Refuse(player, "$msg_privatezone"); return; }
-        }
-        if (OtherPlayerInTheWay(player, plan)) { Refuse(player, "V ploše stojí jiný hráč"); return; }
+        if (Blocker(player, plan) is { } blocked) { Refuse(player, blocked); return; }
         StartCoroutine(LevelRoutine(player, plan.Area, plan.Target, plan.FreeFill));
+    }
+
+    /// <summary>Důvod, proč plochu nejde upravit, nebo null. Kontroluje každý vrchol, kterého se zápis dotkne.</summary>
+    private static string Blocker(Player player, AreaPlan area)
+    {
+        foreach (var v in TerrainWriter.Touched(area))
+        {
+            if (Location.IsInsideNoBuildLocation(v.Point)) return "$msg_nobuildzone";
+            if (!PrivateArea.CheckAccess(v.Point, 0, flash: false))
+            {
+                PrivateArea.CheckAccess(v.Point);
+                return "$msg_privatezone";
+            }
+        }
+        return OtherPlayerInTheWay(player, area) ? "V ploše stojí jiný hráč" : null;
     }
 
     private static bool OtherPlayerInTheWay(Player self, AreaPlan area)
@@ -279,20 +293,28 @@ public sealed class Plugin : BaseUnityPlugin
         player.m_lastToolUseTime = Time.time + ClaimWait;
         try
         {
-            var compilers = TerrainWriter.Claim(plan);
-            if (compilers == null) { Refuse(player, "Terén tady teď nejde upravit"); yield break; }
+            var claimed = TerrainWriter.Claim(plan);
+            if (claimed == null) { Refuse(player, "Terén tady teď nejde upravit"); yield break; }
             yield return new WaitForSeconds(ClaimWait);
 
             if (!player || player != Player.m_localPlayer || player.IsDead() || player.GetRightItem() != hoe) yield break;
-            if (!TerrainWriter.Ready(compilers)) { Refuse(player, "Terén tu právě upravuje jiný hráč"); yield break; }
+            if (!TerrainWriter.Ready(claimed)) { Refuse(player, "Terén tu právě upravuje jiný hráč"); yield break; }
 
+            // Za čekání se mohl změnit terén, zdroje i hráči kolem: spočítat a zkontrolovat znovu.
             var fresh = Budget.Of(player, rates, pickaxeSeconds.Value);
             var written = AreaPlan.Measure(area, target, freeFill, fresh.Pickaxe != null, player.m_placementGhost, pieceMask);
-            var (paid, lack) = fresh.Select(written, player.transform.position, rates);
+            var (paid, lack) = fresh.Select(written, player.transform.position, rates, v => TerrainWriter.Covers(claimed, v));
             if (paid.Vertices == 0) { Refuse(player, lack != Shortage.None ? Capitalise(ShortageText(lack)) : "Plocha už je rovná"); yield break; }
+            if (Blocker(player, written) is { } blocked) { Refuse(player, blocked); yield break; }
 
-            TerrainWriter.Write(written, compilers, preserveSoil.Value);
-            Charge(player, fresh, paid);
+            try
+            {
+                TerrainWriter.Write(written, claimed, preserveSoil.Value);
+            }
+            finally
+            {
+                Charge(player, fresh, paid);
+            }
             player.FaceLookDirection();
             player.m_zanim.SetTrigger(hoe.m_shared.m_attack.m_attackAnimation);
             rates.LevelOp.m_onPlacedEffect.Create(written.Centre, Quaternion.identity);
