@@ -10,7 +10,7 @@ Vlastní BepInEx módy do Valheimu, jedno repo, každý mód ve vlastní složce
 
 ## Struktura a build
 - `Directory.Build.props` společné reference na hru (`ValheimDir`, výchozí Steam v `$HOME`) a cíl `Deploy`,
-  který po buildu zkopíruje DLL do `BepInEx/plugins/<Mód>/`.
+  který po buildu zkopíruje DLL do `BepInEx/plugins/PetyM-<Mód>/` (stejně jako r2modman).
 - Build: `dotnet build` ve složce módu. Cíl net48, reference přímo z herní složky, nic se necommituje.
 - Vydání: `dotnet build -c Release` vyrobí `build/PetyM-<Mód>-<verze>.zip` pro Thunderstore (tým PetyM, MIT),
   metadata v `<Mód>/Thunderstore/`, postup v `README.md`.

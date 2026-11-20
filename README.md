@@ -29,5 +29,5 @@ Ikony: `<Mód>/Thunderstore/icon.svg` je zdroj, `icon.png` (256×256) se renderu
 
 ## Vazby mimo repo
 - Build čte DLL ze Steam složky Valheimu (`~/.local/share/Steam/steamapps/common/Valheim`) a zapisuje do jejích
-  `BepInEx/plugins/<Mód>/`.
+  `BepInEx/plugins/PetyM-<Mód>/`.
 - `dotnet-sdk` z pacmanu, `ilspycmd` jako globální dotnet tool (`~/.dotnet/tools`).

@@ -25,7 +25,7 @@
     <Reference Include="$(Managed)/UnityEngine.TextRenderingModule.dll" Private="false" />
   </ItemGroup>
   <Target Name="Deploy" AfterTargets="Build">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ValheimDir)/BepInEx/plugins/$(AssemblyName)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ValheimDir)/BepInEx/plugins/$(ThunderstoreTeam)-$(AssemblyName)" />
   </Target>
 
   <!-- Balíček pro Thunderstore: jen v Release, výstup build/PetyM-<Mód>-<verze>.zip. -->
