@@ -18,7 +18,7 @@ internal sealed class Slot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     private System.Action<Entry, Entry> reorder;
     private GameObject ghost;
 
-    /// <param name="reorder">Přetažení na jiný slot téže mřížky: (přesouvaná, cílová nebo null = na konec).</param>
+    /// <param name="reorder">Drop onto another slot of the same grid: (dragged, target or null = to the end).</param>
     public static Slot Create(Transform parent, float x, float y, float size, bool inBookmarks, System.Action<Entry, View> open, System.Action<Entry, Entry> reorder = null)
     {
         var go = Ui.Rect("Slot", parent, x, y, size, size);

@@ -8,15 +8,15 @@ using UnityEngine.UI;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Hlavička panelu výsledků: pole hledání, přepínač řazení, čipy tagů a našeptávač (SPEC 2, 3).
-/// Čipy jsou jen zkratka, stav je vždy v textu hledání.
+/// Results panel header: search field, sort toggle, tag chips and autocomplete (SPEC 2, 3).
+/// Chips are only a shortcut, the state always lives in the search text.
 /// </summary>
 internal sealed class SearchBar
 {
     private const float ChipHeight = 26, ChipRow = 30, SuggestionHeight = 24, SortWidth = 140;
     private const int MaxSuggestions = 8;
     private static readonly Dictionary<SortMode, string> SortLabels = new()
-        { [SortMode.Progression] = "Řadit: postup", [SortMode.Name] = "Řadit: název", [SortMode.Mod] = "Řadit: mód" };
+        { [SortMode.Progression] = "Sort: progression", [SortMode.Name] = "Sort: name", [SortMode.Mod] = "Sort: mod" };
     private static string lastText = "";
 
     private readonly ItemPanel panel;
@@ -43,7 +43,7 @@ internal sealed class SearchBar
         this.catalog = catalog;
         this.changed = changed;
         var go = GUIManager.Instance.CreateInputField(panel.Header, Vector2.zero, Vector2.zero, Vector2.zero,
-            InputField.ContentType.Standard, "Hledat… (#tag, @mód, -vyřadit, ^ingredience, a|b)", 18, 300, ItemPanel.RowHeight);
+            InputField.ContentType.Standard, "Search… (#tag, @mod, -exclude, ^ingredient, a|b)", 18, 300, ItemPanel.RowHeight);
         input = go.GetComponent<InputField>();
         input.text = lastText;
         input.onValueChanged.AddListener(_ => OnTextChanged());
@@ -67,7 +67,7 @@ internal sealed class SearchBar
         UpdateChips();
     }
 
-    /// <summary>Rozvrhne hlavičku pro vnitřní šířku panelu, vrátí výšku hlavičky.</summary>
+    /// <summary>Lays out the header for the panel's inner width, returns the header height.</summary>
     public float Layout(float inner)
     {
         float searchWidth = Mathf.Max(120, panel.HeaderWidth - SortWidth - ClearWidth - 8);
@@ -126,8 +126,8 @@ internal sealed class SearchBar
         changed();
     }
 
-    // Kategorie se chovají jako záložky: klik nahradí předchozí kategorii, Ctrl+klik ji přidá jako „nebo“ (#a|#b).
-    // Ostatní čipy (vyrobitelné, záložky) a pravý klik (vyřadit) se jen přidávají a odebírají.
+    // Categories behave like tabs: click replaces the previous category, Ctrl+click adds it as "or" (#a|#b).
+    // Other chips (craftable, bookmarked) and right click (exclude) are simply toggled on and off.
     private void Toggle(string token, bool negate)
     {
         var tokens = input.text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -161,7 +161,7 @@ internal sealed class SearchBar
 
     private bool IsCategory(string token) => token.StartsWith("#") && Tags.Categories.Contains(token.Substring(1).ToLowerInvariant());
 
-    /// <summary>Token složený jen z kategorií oddělených '|' (#weapons nebo #weapons|#armor).</summary>
+    /// <summary>Token made only of categories separated by '|' (#weapons or #weapons|#armor).</summary>
     private bool IsCategoryGroup(string token) => token.Split('|').All(IsCategory);
 
     private static string Without(string group, string token) => string.Join("|", group.Split('|').Where(p => !Same(p, token)));
@@ -220,7 +220,7 @@ internal sealed class SearchBar
         caretToEnd = true;
     }
 
-    /// <summary>Nahradí rozepsaný poslední token doplněním, zachová negaci, část před '|' a před poslední ':'.</summary>
+    /// <summary>Replaces the partially typed last token with the completion, keeping the negation, the part before '|' and before the last ':'.</summary>
     private static string Replace(string text, string completion)
     {
         int start = text.LastIndexOf(' ') + 1;

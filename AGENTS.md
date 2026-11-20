@@ -15,6 +15,6 @@ Vlastní BepInEx módy do Valheimu, jedno repo, každý mód ve vlastní složce
 - Herní API ověřuj dekompilací: `ilspycmd -t <Typ> <Managed>/assembly_valheim.dll`.
 
 ## Konvence
-- Texty ve hře a popisy configu česky. Výjimka: LevelEasily je celý anglicky (kód, komentáře, texty ve hře, config,
-  `LevelEasily/*.md`), přání uživatele 2026-11-20. KB zůstává česky.
+- Texty ve hře a popisy configu česky. Výjimka: LevelEasily a RecipeBrowser jsou celé anglicky (kód, komentáře, texty ve hře,
+  config, `<Mód>/*.md`), přání uživatele 2026-11-20. KB zůstává česky.
 - Módy, které mění svět, musí běžet i na serveru (`games/kb/valheim/server-a-klienti.md`). Preferuj čistě klientské.

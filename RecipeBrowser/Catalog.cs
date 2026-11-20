@@ -17,22 +17,22 @@ internal sealed class Entry(string key, string name, Sprite icon, string mod, st
     public Sprite Icon { get; } = icon;
     public string Mod { get; } = mod;
     public string ItemName { get; } = itemName;
-    public string Kind => ItemName == null ? "stavba" : "předmět";
+    public string Kind => ItemName == null ? "piece" : "item";
 
-    // Kontrakt pro UI a hledání (plní Catalog/Tags/Progression):
-    /// <summary>Tagy bez '#', malými písmeny (např. "weapons", "swords", "plains", "set:troll").</summary>
+    // Contract for the UI and search (filled by Catalog/Tags/Progression):
+    /// <summary>Tags without '#', lowercase (e.g. "weapons", "swords", "plains", "set:troll").</summary>
     public HashSet<string> Tags { get; } = new();
-    /// <summary>Pořadí biomu podle Progression (0 = Louky), null = neznámý.</summary>
+    /// <summary>Biome rank per Progression (0 = Meadows), null = unknown.</summary>
     public int? Biome { get; set; }
-    /// <summary>Podkategorie pro řazení v rámci kategorie (např. "swords"), může být null.</summary>
+    /// <summary>Subcategory for sorting within a category (e.g. "swords"), may be null.</summary>
     public string Subcategory { get; set; }
-    /// <summary>Úroveň stanice potřebná k výrobě (0 = bez stanice nebo nevyrábí se).</summary>
+    /// <summary>Station level required to craft (0 = no station or not craftable).</summary>
     public int StationLevel { get; set; }
-    /// <summary>Hlavní kategorie jako tag ("weapons", "pieces"…), viz Tags.Categories.</summary>
+    /// <summary>Main category as a tag ("weapons", "pieces"…), see Tags.Categories.</summary>
     public string MainTag { get; set; } = "misc";
-    /// <summary>Hodnoty jídla (zdraví, výdrž, eitr), null u předmětů, které nejsou jídlo.</summary>
+    /// <summary>Food values (health, stamina, eitr), null for items that are not food.</summary>
     public (float Health, float Stamina, float Eitr)? Food { get; set; }
-    /// <summary>Název a mód bez mezer, předpočítané pro hledání (bez alokací na každý znak).</summary>
+    /// <summary>Name and mod without spaces, precomputed for search (no allocations per keystroke).</summary>
     public string CompactName { get; } = (name ?? "").Replace(" ", "");
     public string CompactMod { get; } = (mod ?? "").Replace(" ", "");
 
@@ -47,7 +47,7 @@ internal readonly struct ItemStack(Entry entry, int amount)
     public int Amount { get; } = amount;
 }
 
-/// <summary>Druh karty: výroba (ObjectDB recept), stavba, zpracování, pěstování, produkce (úl), zdroj bez výroby.</summary>
+/// <summary>Card kind: crafting (ObjectDB recipe), build, processing, growing, production (beehive), non-crafted source.</summary>
 internal enum CardKind { Craft, Build, Conversion, Grow, Production, Source }
 
 internal sealed class RecipeCard(string title, string group, bool isUpgrade, Entry station, int stationLevel, List<ItemStack> inputs, List<ItemStack> outputs, List<string> notes)
@@ -61,18 +61,18 @@ internal sealed class RecipeCard(string title, string group, bool isUpgrade, Ent
     public List<ItemStack> Outputs { get; } = outputs;
     public List<string> Notes { get; } = notes;
 
-    // Kontrakt pro UI:
-    /// <summary>Vanilla recept (jen u výroby z ObjectDB), pro výběr ve vanilla craftingu. Jinak null.</summary>
+    // Contract for the UI:
+    /// <summary>Vanilla recipe (only for ObjectDB crafting), for selecting it in vanilla crafting. Otherwise null.</summary>
     public Recipe Recipe { get; set; }
-    /// <summary>Kvalita výsledku (1 = výroba, 2+ = vylepšení).</summary>
+    /// <summary>Result quality (1 = crafting, 2+ = upgrade).</summary>
     public int Quality { get; set; } = 1;
-    /// <summary>Biom karty (receptu nebo zdroje), null = neznámý.</summary>
+    /// <summary>Biome of the card (recipe or source), null = unknown.</summary>
     public int? Biome { get; set; }
     public CardKind Kind { get; set; } = CardKind.Craft;
-    /// <summary>Stačí jedna z ingrediencí (Recipe.m_requireOnlyOneIngredient).</summary>
+    /// <summary>Any one ingredient is enough (Recipe.m_requireOnlyOneIngredient).</summary>
     public bool OnlyOneIngredient { get; set; }
 
-    // Pro výpočet biomu (zdroje): přímý biom, slabý zdroj (obchodník, truhla podle jména), potřebný nástroj.
+    // For biome computation (sources): direct biome, weak source (trader, chest by name), required tool.
     internal int? Seed { get; set; }
     internal bool Weak { get; set; }
     internal int ToolTier { get; set; }
@@ -100,18 +100,18 @@ internal sealed class Catalog
 
     public IReadOnlyList<Entry> All { get; }
     public int SourceRecipeCount { get; }
-    /// <summary>Počet předmětů v ObjectDB při stavbě; katalog je zastaralý, když nesedí s db.m_items.Count.</summary>
+    /// <summary>ObjectDB item count at build time; the catalog is stale when it differs from db.m_items.Count.</summary>
     public int SourceItemCount { get; }
-    /// <summary>DataConfig.Version při stavbě; při změně configu katalogu přestavět.</summary>
+    /// <summary>DataConfig.Version at build time; rebuild when the catalog config changes.</summary>
     public int ConfigVersion { get; }
     public long BuildMilliseconds { get; }
 
-    /// <summary>Je katalog zastaralý vůči ObjectDB a configu?</summary>
+    /// <summary>Is the catalog stale relative to ObjectDB and config?</summary>
     public bool IsStale(ObjectDB db) => !db || db.m_recipes.Count != SourceRecipeCount || db.m_items.Count != SourceItemCount
         || DataConfig.Version != ConfigVersion || Sources.SpawnSignature() != SpawnSignature || Locations.Version != LocationVersion;
-    /// <summary>Sources.SpawnSignature při stavbě (spawny módů můžou dorazit až se serverem).</summary>
+    /// <summary>Sources.SpawnSignature at build time (mod spawns may only arrive with the server).</summary>
     public int SpawnSignature { get; }
-    /// <summary>Locations.Version při stavbě (lokace se načítají na pozadí a dorazí později).</summary>
+    /// <summary>Locations.Version at build time (locations load in the background and arrive later).</summary>
     public int LocationVersion { get; }
 
     public Catalog(ObjectDB db, ZNetScene scene)
@@ -178,14 +178,14 @@ internal sealed class Catalog
         TagCounts = counts;
         ModCounts = All.GroupBy(e => e.Mod).ToDictionary(g => g.Key, g => g.Count());
         BuildMilliseconds = watch.ElapsedMilliseconds;
-        DataConfig.Log.LogInfo($"Katalog: {All.Count} položek, {cards.Count} karet, {BuildMilliseconds} ms. Vegetace {harvest.VegetationCount}, tvorů s biomem {harvest.CreatureCount}, " +
-            $"biom neznámý u {All.Count(e => !e.Biome.HasValue)}. Přeskočeno {skippedStations} prefabů zpracování mimo tabulky staveb. " +
-            (Locations.Done ? $"Lokace: {Locations.Places.Count} prefabů." : "Lokace se ještě načítají (truhly zatím jen podle jména)."));
-        DataConfig.Log.LogInfo("Skryto: " + filter.Summary());
+        DataConfig.Log.LogInfo($"Catalog: {All.Count} entries, {cards.Count} cards, {BuildMilliseconds} ms. Vegetation {harvest.VegetationCount}, creatures with biome {harvest.CreatureCount}, " +
+            $"unknown biome for {All.Count(e => !e.Biome.HasValue)}. Skipped {skippedStations} processing prefabs not in any piece table. " +
+            (Locations.Done ? $"Locations: {Locations.Places.Count} prefabs." : "Locations are still loading (chests only by name for now)."));
+        DataConfig.Log.LogInfo("Hidden: " + filter.Summary());
     }
 
-    // Kontrakt pro UI:
-    /// <summary>Položky seřazené podle zvoleného řazení (výsledek se cachuje).</summary>
+    // Contract for the UI:
+    /// <summary>Entries in the chosen sort order (the result is cached).</summary>
     public IReadOnlyList<Entry> Sorted(SortMode mode)
     {
         if (sorted.TryGetValue(mode, out var list)) return list;
@@ -198,15 +198,15 @@ internal sealed class Catalog
         };
     }
 
-    /// <summary>Všechny tagy s počtem položek, pro našeptávač a čipy.</summary>
+    /// <summary>All tags with entry counts, for autocomplete and chips.</summary>
     public IReadOnlyDictionary<string, int> TagCounts { get; }
-    /// <summary>Všechny módy (jak je ukazuje Entry.Mod) s počtem položek.</summary>
+    /// <summary>All mods (as shown by Entry.Mod) with entry counts.</summary>
     public IReadOnlyDictionary<string, int> ModCounts { get; }
 
-    /// <summary>Český popis tagu (i "set:…" a "station:…"), null když ho neznáme.</summary>
+    /// <summary>Tag description (including "set:…" and "station:…"), null when unknown.</summary>
     public string TagDescription(string tag) => tagDescriptions.TryGetValue(tag, out var text) ? text : Tags.Describe(tag);
 
-    /// <summary>CraftingStation.m_name stanice (pro hledání stanice v dosahu), null když položka není stanice.</summary>
+    /// <summary>CraftingStation.m_name of the station (for finding stations in range), null when the entry is not a station.</summary>
     public string StationName(Entry station) => station != null && stationNames.TryGetValue(station, out var name) ? name : null;
 
     public Entry Find(string key) => key != null && entries.TryGetValue(key, out var entry) ? entry : null;
@@ -243,7 +243,7 @@ internal sealed class Catalog
         return entry;
     }
 
-    // Stanice receptu; ty, které nejsou v žádné tabulce staveb (fire_pit_haldor, goblin_bed…), skryje RemoveUnobtainable.
+    // Recipe station; those not in any piece table (fire_pit_haldor, goblin_bed…) are hidden by RemoveUnobtainable.
     private Entry StationEntry(CraftingStation station)
     {
         if (!station) return null;
@@ -259,13 +259,13 @@ internal sealed class Catalog
         var inputs = piece.m_resources.Where(r => r.m_resItem && r.m_amount > 0)
             .Select(r => new ItemStack(Find(r.m_resItem.name), r.m_amount)).Where(s => s.Entry != null).ToList();
         string toolName = Localization.instance.Localize(tool.m_itemData.m_shared.m_name);
-        cards.Add(new RecipeCard("Stavba", $"Stavba · {toolName}", false, StationEntry(piece.m_craftingStation), 0, inputs,
-            new List<ItemStack> { new(output, 1) }, new List<string> { $"Nástroj: {toolName}" }) { Kind = CardKind.Build });
+        cards.Add(new RecipeCard("Build", $"Build · {toolName}", false, StationEntry(piece.m_craftingStation), 0, inputs,
+            new List<ItemStack> { new(output, 1) }, new List<string> { $"Tool: {toolName}" }) { Kind = CardKind.Build });
         if (piece.GetComponent<Plant>() is not { } plant || !plant) return;
         seeds.Add(piece.name);
         foreach (var input in inputs) seeds.Add(input.Entry.Key);
         var crops = new List<ItemStack>();
-        var notes = new List<string> { $"Zasaď: {output.Name}", $"Roste {plant.m_growTime / 60f:0}–{plant.m_growTimeMax / 60f:0} min" };
+        var notes = new List<string> { $"Plant: {output.Name}", $"Grows in {plant.m_growTime / 60f:0}–{plant.m_growTimeMax / 60f:0} min" };
         foreach (var pickable in plant.m_grownPrefabs.Where(g => g).Select(g => g.GetComponent<Pickable>()).Where(p => p))
         {
             if (pickable.m_itemPrefab && Find(pickable.m_itemPrefab.name) is { } crop && crops.All(c => c.Entry != crop))
@@ -274,7 +274,7 @@ internal sealed class Catalog
                 if (crops.All(c => c.Entry.Key != extra.m_item.name)) crops.Add(new ItemStack(Find(extra.m_item.name), Mathf.Max(1, extra.m_stackMax)));
         }
         if (crops.Count > 0 && inputs.Count > 0)
-            cards.Add(new RecipeCard("Pěstování", "Pěstování", false, null, 0, inputs, crops, notes) { Kind = CardKind.Grow });
+            cards.Add(new RecipeCard("Growing", "Growing", false, null, 0, inputs, crops, notes) { Kind = CardKind.Grow });
     }
 
     private void AddCraftingRecipes(Recipe recipe)
@@ -289,12 +289,12 @@ internal sealed class Catalog
             inputs.AddRange(recipe.m_resources.Where(r => r.m_resItem && r.GetAmount(quality) > 0)
                 .Select(r => new ItemStack(Find(r.m_resItem.name), r.GetAmount(quality))).Where(s => s.Entry != null));
             var notes = new List<string>();
-            if (quality > 1) notes.Add($"Vstupní předmět musí mít úroveň {quality - 1}");
-            if (recipe.m_requireOnlyOneIngredient) notes.Add("Stačí jedna z ingrediencí");
+            if (quality > 1) notes.Add($"Input item must be level {quality - 1}");
+            if (recipe.m_requireOnlyOneIngredient) notes.Add("Any one ingredient");
             var station = recipe.GetRequiredStation(quality);
-            string title = quality == 1 ? "Výroba" : $"Vylepšení na úroveň {quality}";
+            string title = quality == 1 ? "Crafting" : $"Upgrade to level {quality}";
             var stationEntry = StationEntry(station);
-            cards.Add(new RecipeCard(title, stationEntry?.Name ?? "Ruční výroba", quality > 1, stationEntry, station ? recipe.GetRequiredStationLevel(quality) : 0,
+            cards.Add(new RecipeCard(title, stationEntry?.Name ?? "Hand crafting", quality > 1, stationEntry, station ? recipe.GetRequiredStationLevel(quality) : 0,
                 inputs, new List<ItemStack> { new(result, quality == 1 ? recipe.m_amount : 1) }, notes)
             {
                 Kind = CardKind.Craft, Recipe = recipe, Quality = quality, OnlyOneIngredient = recipe.m_requireOnlyOneIngredient,
@@ -302,7 +302,7 @@ internal sealed class Catalog
         }
     }
 
-    /// <summary>Zpracování v peci, kvasné kádi, na ohništi. False = prefab zpracovává, ale není v žádné tabulce staveb.</summary>
+    /// <summary>Processing in smelters, fermenters, cooking stations. False = the prefab processes but is not in any piece table.</summary>
     private bool AddConversions(GameObject prefab)
     {
         var smelter = prefab.GetComponent<Smelter>();
@@ -312,21 +312,21 @@ internal sealed class Catalog
         var station = Find(prefab.name);
         if (station == null)
         {
-            if (DataConfig.LogFilter?.Value == true) DataConfig.Log.LogInfo($"Zpracování {prefab.name} přeskočeno: není v tabulce staveb");
+            if (DataConfig.LogFilter?.Value == true) DataConfig.Log.LogInfo($"Processing {prefab.name} skipped: not in any piece table");
             return false;
         }
         if (smelter)
         {
-            var fuel = smelter.m_fuelItem ? $"Palivo: {smelter.m_fuelPerProduct}× {Find(smelter.m_fuelItem.name)?.Name}" : null;
+            var fuel = smelter.m_fuelItem ? $"Fuel: {smelter.m_fuelPerProduct}× {Find(smelter.m_fuelItem.name)?.Name}" : null;
             foreach (var c in smelter.m_conversion)
-                AddConversion(station, c.m_from, 1, c.m_to, 1, fuel, $"{smelter.m_secPerProduct:0} s za kus");
+                AddConversion(station, c.m_from, 1, c.m_to, 1, fuel, $"{smelter.m_secPerProduct:0} s each");
         }
         if (fermenter)
             foreach (var c in fermenter.m_conversion)
                 AddConversion(station, c.m_from, 1, c.m_to, c.m_producedItems, null, $"{fermenter.m_fermentationDuration / 60f:0} min");
         if (cooking)
         {
-            var fuel = cooking.m_useFuel && cooking.m_fuelItem ? $"Palivo: {Find(cooking.m_fuelItem.name)?.Name}" : null;
+            var fuel = cooking.m_useFuel && cooking.m_fuelItem ? $"Fuel: {Find(cooking.m_fuelItem.name)?.Name}" : null;
             foreach (var c in cooking.m_conversion)
                 AddConversion(station, c.m_from, 1, c.m_to, 1, fuel, $"{c.m_cookTime:0} s");
         }
@@ -340,19 +340,19 @@ internal sealed class Catalog
         if (input == null || output == null) return;
         var notes = new List<string> { time };
         if (fuel != null) notes.Add(fuel);
-        cards.Add(new RecipeCard("Zpracování", station.Name, false, station, 0, new List<ItemStack> { new(input, fromAmount) },
+        cards.Add(new RecipeCard("Processing", station.Name, false, station, 0, new List<ItemStack> { new(input, fromAmount) },
             new List<ItemStack> { new(output, toAmount) }, notes) { Kind = CardKind.Conversion });
     }
 
-    /// <summary>SPEC 1.1 pravidla 4–6: stanice mimo tabulky staveb, duplicity podle m_name a položky bez zdroje i použití.</summary>
+    /// <summary>SPEC 1.1 rules 4–6: stations not in any piece table, duplicates by m_name and entries with no source or use.</summary>
     private void RemoveUnobtainable()
     {
         var removed = new HashSet<Entry>();
-        // Pravidlo 6: stanice receptu, kterou nejde postavit žádným nástrojem (fire_pit_haldor…), recept zneplatní.
+        // Rule 6: a recipe station that no tool can build (fire_pit_haldor…) invalidates the recipe.
         foreach (var station in stationNames.Keys.Where(s => !buildable.Contains(s.Key)))
         {
             removed.Add(station);
-            filter.Hide(station.Key, station.Name, "stanice mimo tabulky staveb");
+            filter.Hide(station.Key, station.Name, "station not in any piece table");
         }
         cards.RemoveAll(c => removed.Contains(c.Station));
         var produced = new HashSet<Entry>(cards.Where(c => !c.IsUpgrade).SelectMany(c => c.Outputs).Select(o => o.Entry));
@@ -361,21 +361,21 @@ internal sealed class Catalog
         var overrides = Progression.Overrides();
         foreach (var group in entries.Values.Where(e => e.Drop && !removed.Contains(e)).GroupBy(e => e.Drop.m_itemData.m_shared.m_name).Where(g => g.Count() > 1))
         {
-            // Ingredienci nebo stanici nechat i bez receptu, jinak by zmizely recepty, které ji potřebují.
+            // Keep an ingredient or station even without a recipe, otherwise recipes that need it would disappear.
             var keep = group.Where(e => produced.Contains(e) || consumed.Contains(e)).ToList();
             if (keep.Count == 0) keep = group.Where(used.Contains).ToList();
             if (keep.Count == 0) continue;
             foreach (var entry in group.Except(keep))
             {
                 removed.Add(entry);
-                filter.Hide(entry.Key, entry.Name, "duplicita");
+                filter.Hide(entry.Key, entry.Name, "duplicate");
             }
         }
         if (DataConfig.HideUnobtainable?.Value != false)
             foreach (var entry in entries.Values.Where(e => !removed.Contains(e) && !used.Contains(e) && !overrides.ContainsKey(e.Key) && !(e.Drop && e.Drop.m_itemData.m_shared.m_buildPieces)))
             {
                 removed.Add(entry);
-                filter.Hide(entry.Key, entry.Name, "bez zdroje i použití");
+                filter.Hide(entry.Key, entry.Name, "no source or use");
             }
         if (removed.Count == 0) return;
         foreach (var entry in removed) entries.Remove(entry.Key);
@@ -396,10 +396,10 @@ internal sealed class Catalog
             {
                 string tag = Tags.StationTag(station);
                 entry.Tags.Add(tag);
-                tagDescriptions[tag] = "Vyrábí se na: " + station.Name;
+                tagDescriptions[tag] = "Crafted at: " + station.Name;
             }
             foreach (var tag in entry.Tags.Where(t => t.StartsWith(Tags.SetPrefix)))
-                if (!tagDescriptions.ContainsKey(tag)) tagDescriptions[tag] = "Sada zbroje: " + entry.Name;
+                if (!tagDescriptions.ContainsKey(tag)) tagDescriptions[tag] = "Armor set: " + entry.Name;
         }
     }
 

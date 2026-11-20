@@ -6,8 +6,8 @@ using UnityEngine;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Kolik má hráč dané položky (inventář, volitelně truhly v okolí) a jestli jde položka vyrobit hned.
-/// Výsledky se drží do konce snímku nebo do Invalidate.
+/// How many of an entry the player has (inventory, optionally nearby chests) and whether it can be crafted right now.
+/// Results are cached until the end of the frame or until Invalidate.
 /// </summary>
 internal static class Stock
 {
@@ -23,7 +23,7 @@ internal static class Stock
     private static int frame = -1;
     private static bool? containerMod;
 
-    /// <summary>Počítají se i truhly v okolí (podle configu a přítomnosti módu typu CraftFromContainers)?</summary>
+    /// <summary>Are nearby chests counted too (per config and presence of a CraftFromContainers-like mod)?</summary>
     public static bool UsesContainers => DataConfig.Containers?.Value switch
     {
         ContainerMode.Always => true,
@@ -32,7 +32,7 @@ internal static class Stock
         _ => false,
     };
 
-    /// <summary>Počet kusů, -1 = nelze spočítat (stavba nebo hráč není ve světě).</summary>
+    /// <summary>Item count, -1 = cannot be counted (a piece, or the player is not in a world).</summary>
     public static int Count(Entry entry)
     {
         var player = Player.m_localPlayer;
@@ -46,8 +46,8 @@ internal static class Stock
     }
 
     /// <summary>
-    /// Jde položku teď vyrobit? Některá karta výroby nebo stavby má splněné suroviny (inventář, případně truhly)
-    /// a její stanice na potřebné úrovni je v dosahu, nebo stanici nepotřebuje.
+    /// Can the entry be crafted now? Some crafting or build card has its resources available (inventory, possibly chests)
+    /// and its station at the required level is in range, or it needs no station.
     /// </summary>
     public static bool CanCraft(Entry entry, Catalog catalog)
     {
@@ -66,8 +66,8 @@ internal static class Stock
     }
 
     /// <summary>
-    /// Levný otisk stavu, na kterém závisí počty a #craftable: obsah inventáře, stanice, u které hráč stojí, a čtverec
-    /// po 4 m, kde stojí (truhly a stanice v dosahu). UI podle změny překreslí karty a přefiltruje.
+    /// Cheap fingerprint of the state that counts and #craftable depend on: inventory contents, the station the player stands at, and the
+    /// 4 m grid square they stand in (chests and stations in range). On change the UI redraws cards and refilters.
     /// </summary>
     public static int Signature()
     {
@@ -85,7 +85,7 @@ internal static class Stock
         }
     }
 
-    /// <summary>Zahodí mezipaměť počtů (volá UI jednou za snímek / při překreslení).</summary>
+    /// <summary>Drops the count cache (called by the UI once per frame / on redraw).</summary>
     public static void Invalidate()
     {
         frame = -1;
@@ -125,7 +125,7 @@ internal static class Stock
         return stations[(name, level)] = ok;
     }
 
-    // Seznam truhel se obnovuje jen jednou za pár sekund (FindObjectsOfType je drahý), dosah a přístup se kontroluje každý snímek.
+    // The chest list is refreshed only every few seconds (FindObjectsOfType is expensive); range and access are checked every frame.
     private static List<Container> FindContainers(Player player)
     {
         if (Time.realtimeSinceStartup - scannedAt > ContainerScanInterval)

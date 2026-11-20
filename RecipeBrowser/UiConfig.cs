@@ -5,10 +5,10 @@ using UnityEngine;
 
 namespace RecipeBrowser;
 
-/// <summary>Config UI části: řazení, sbalení a uložené rozložení panelů (relativně k obrazovce).</summary>
+/// <summary>UI config: sorting, collapsing and the saved panel layout (relative to the screen).</summary>
 internal static class UiConfig
 {
-    private const string LayoutSection = "Rozložení";
+    private const string LayoutSection = "Layout";
 
     public static ConfigEntry<SortMode> Sort { get; private set; }
     public static ConfigEntry<bool> ResultsCollapsed { get; private set; }
@@ -21,14 +21,14 @@ internal static class UiConfig
 
     public static void Bind(ConfigFile config)
     {
-        Sort = config.Bind("Zobrazení", "Řazení", SortMode.Progression, "Řazení výsledků: Progression = postup (biom, kategorie, stanice), Name = název, Mod = mód.");
-        BiomeSeparators = config.Bind("Zobrazení", "Oddělovač biomu", false, "Při řazení podle postupu vloží do mřížky řádek s názvem biomu před každou skupinu.");
-        ResultsCollapsed = config.Bind("Zobrazení", "Sbalit výsledky", false, "Panel výsledků je sbalený do malé lišty.");
-        BookmarksCollapsed = config.Bind("Zobrazení", "Sbalit záložky", false, "Panel záložek je sbalený do malé lišty.");
-        ResetLayout = config.Bind(LayoutSection, "Obnovit rozložení", false, "Zapnutím vrátíš panely na výchozí místo a velikost (pak se samo vypne).");
-        ResultsRect = config.Bind(LayoutSection, "Výsledky", "", "Pozice a velikost panelu výsledků (x;y;šířka;výška jako podíl obrazovky). Prázdné = výchozí.");
-        BookmarksRect = config.Bind(LayoutSection, "Záložky", "", "Pozice a velikost panelu záložek. Prázdné = výchozí.");
-        WindowRect = config.Bind(LayoutSection, "Okno receptu", "", "Pozice a velikost okna receptu. Prázdné = výchozí.");
+        Sort = config.Bind("Display", "Sort", SortMode.Progression, "Result sorting: Progression = progression (biome, category, station), Name = name, Mod = mod.");
+        BiomeSeparators = config.Bind("Display", "Biome separators", false, "When sorting by progression, inserts a row with the biome name before each group in the grid.");
+        ResultsCollapsed = config.Bind("Display", "Collapse results", false, "The results panel is collapsed into a small bar.");
+        BookmarksCollapsed = config.Bind("Display", "Collapse bookmarks", false, "The bookmarks panel is collapsed into a small bar.");
+        ResetLayout = config.Bind(LayoutSection, "Reset layout", false, "Turn on to return the panels to their default position and size (switches itself off afterwards).");
+        ResultsRect = config.Bind(LayoutSection, "Results", "", "Position and size of the results panel (x;y;width;height as a fraction of the screen). Empty = default.");
+        BookmarksRect = config.Bind(LayoutSection, "Bookmarks", "", "Position and size of the bookmarks panel. Empty = default.");
+        WindowRect = config.Bind(LayoutSection, "Recipe window", "", "Position and size of the recipe window. Empty = default.");
     }
 
     public static void ClearLayout()
@@ -37,7 +37,7 @@ internal static class UiConfig
         ResetLayout.Value = false;
     }
 
-    /// <summary>Uložený obdélník převedený do lokálních souřadnic plátna, nebo výchozí.</summary>
+    /// <summary>The saved rectangle converted to local canvas coordinates, or the default.</summary>
     public static Rect Load(ConfigEntry<string> entry, Rect screen, Rect fallback)
     {
         var parts = (entry.Value ?? "").Split(';');

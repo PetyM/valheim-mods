@@ -5,10 +5,10 @@ using BepInEx.Logging;
 
 namespace RecipeBrowser;
 
-/// <summary>Odkud brát počty „máš“: Auto = truhly jen když běží mód typu CraftFromContainers.</summary>
+/// <summary>Where "have" counts come from: Auto = chests only when a CraftFromContainers-like mod is running.</summary>
 internal enum ContainerMode { Auto, Always, Never }
 
-/// <summary>Config datové části (katalog, filtr, biomy, počty). Binduje Plugin.Awake.</summary>
+/// <summary>Config of the data side (catalog, filter, biomes, counts). Bound by Plugin.Awake.</summary>
 internal static class DataConfig
 {
     public static ManualLogSource Log { get; } = Logger.CreateLogSource("RecipeBrowser.Data");
@@ -20,23 +20,23 @@ internal static class DataConfig
     public static ConfigEntry<float> ContainerRange { get; private set; }
     public static ConfigEntry<bool> ScanLocations { get; private set; }
 
-    /// <summary>Zvýší se při změně nastavení, které mění obsah katalogu (UI pak katalog přestaví).</summary>
+    /// <summary>Incremented when a setting that changes catalog contents changes (the UI then rebuilds the catalog).</summary>
     public static int Version { get; private set; }
 
     public static void Bind(ConfigFile config)
     {
-        HideUnobtainable = Rebuilds(config.Bind("Katalog", "Skrýt nedostupné", true,
-            "Skryje předměty bez zdroje i bez použití (žádný recept, zpracování, drop, sběr, obchodník ani ingredience)."));
-        IgnoreList = Rebuilds(config.Bind("Katalog", "Ignorovat", "",
-            "Prefaby, které se nikdy neukážou. Oddělené čárkou: přesné jméno, '*přípona' nebo 'předpona*' (např. 'SwordCheat, *_nochest, NPC_*')."));
-        LogFilter = config.Bind("Katalog", "Logovat filtr", false, "Do logu vypíše každou skrytou položku a důvod (ladění).");
-        BiomeOverrides = Rebuilds(config.Bind("Biomy", "Přepsat biom", "",
-            "Ruční biom položek, má přednost před výpočtem. Formát 'Prefab=biom' oddělené čárkou, biom jako tag (meadows, blackforest, swamp, ocean, mountains, plains, mistlands, ashlands, deepnorth)."));
-        ScanLocations = config.Bind("Biomy", "Načíst lokace", true,
-            "Po vstupu do světa postupně načte prefaby lokací a dungeonů (truhly, oltáře, tvorové) pro přesnější biomy a „Jak získat“. Vypni, pokud to při vstupu do světa zasekává hru.");
-        Containers = config.Bind("Počty", "Truhly v okolí", ContainerMode.Auto,
-            "Počítat do „máš“ i obsah truhel v okolí. Auto = jen když běží CraftFromContainers nebo podobný mód, Always = vždy, Never = jen inventář.");
-        ContainerRange = config.Bind("Počty", "Dosah truhel", 20f, new ConfigDescription("Dosah truhel v metrech.", new AcceptableValueRange<float>(2f, 100f)));
+        HideUnobtainable = Rebuilds(config.Bind("Catalog", "Hide unobtainable", true,
+            "Hides items with no source and no use (no recipe, processing, drop, pickup, trader or ingredient use)."));
+        IgnoreList = Rebuilds(config.Bind("Catalog", "Ignore list", "",
+            "Prefabs that are never shown. Comma separated: exact name, '*suffix' or 'prefix*' (e.g. 'SwordCheat, *_nochest, NPC_*')."));
+        LogFilter = config.Bind("Catalog", "Log filter", false, "Logs every hidden entry and the reason (debugging).");
+        BiomeOverrides = Rebuilds(config.Bind("Biomes", "Biome overrides", "",
+            "Manual biome for entries, takes precedence over the computed one. Format 'Prefab=biome', comma separated, biome as a tag (meadows, blackforest, swamp, ocean, mountains, plains, mistlands, ashlands, deepnorth)."));
+        ScanLocations = config.Bind("Biomes", "Scan locations", true,
+            "After entering a world, gradually loads location and dungeon prefabs (chests, altars, creatures) for more accurate biomes and Sources. Turn off if it makes the game stutter after entering a world.");
+        Containers = config.Bind("Counts", "Nearby chests", ContainerMode.Auto,
+            "Include nearby chests in the \"have\" counts. Auto = only when CraftFromContainers or a similar mod is running, Always = always, Never = inventory only.");
+        ContainerRange = config.Bind("Counts", "Chest range", 20f, new ConfigDescription("Chest range in meters.", new AcceptableValueRange<float>(2f, 100f)));
     }
 
     private static ConfigEntry<T> Rebuilds<T>(ConfigEntry<T> entry)
@@ -45,7 +45,7 @@ internal static class DataConfig
         return entry;
     }
 
-    /// <summary>Ignore list jako predikát nad jménem prefabu.</summary>
+    /// <summary>Ignore list as a predicate over the prefab name.</summary>
     public static System.Func<string, bool> Ignored()
     {
         var patterns = (IgnoreList?.Value ?? "").Split(',', ';').Select(p => p.Trim()).Where(p => p.Length > 0).ToList();

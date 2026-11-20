@@ -1,94 +1,96 @@
-# RecipeBrowser – specifikace 1.0
+# RecipeBrowser – specification 1.0
 
-Stav: odsouhlaseno · 2026-11-20 (záložky → tagy + čipy, tagy anglicky, sbalení do lišty, implementovat fáze 1–4). Výchozí stav (0.1.0) popisuje `README.md` v kořeni repa.
-Fakta o herních datech: `kb/lokalizace-chybejici-klic.md`, `kb/filtr-nedostupnych-predmetu.md`, `kb/zdroje-biomu-predmetu.md`.
+Status: approved · 2026-11-20 (category tabs → tags + chips, tags in English, collapse into a bar, implement phases 1–4). The starting state (0.1.0) was described in the repo-root `README.md`; current documentation is in `README.md` in this folder.
+Facts about game data: `kb/lokalizace-chybejici-klic.md`, `kb/filtr-nedostupnych-predmetu.md`, `kb/zdroje-biomu-predmetu.md`.
 
-## 1. Katalog: čistota a metadata
+## 1. Catalog: cleanup and metadata
 
-### 1.1 Filtr nedostupných položek
-Pořadí pravidel. Výsledek každé položky se loguje (debug), aby šlo dohledat, proč něco chybí.
-1. Pevná vyřazení: `ItemType` Customization a Attach_Atgeir, prefaby `SP_*` a `FW_*`, jména `*_attach`, `*_nochest`,
+### 1.1 Filtering unobtainable entries
+Rules in order. The result for each entry is logged (debug), so it is possible to find out why something is missing.
+1. Fixed exclusions: `ItemType` Customization and Attach_Atgeir, prefabs `SP_*` and `FW_*`, names `*_attach`, `*_nochest`,
    `*_ragdoll`, `*Cheat*`, `*Test*`.
-2. DLC, které není nainstalované (`m_dlc` + `DLCMan.IsDLCInstalled`).
-3. Chybějící překlad: vanilla položku skrýt. Mód položku ukázat pod očištěným jménem prefabu (`SwordBlackmetal_TW`
-   → „Sword Blackmetal TW“).
-4. Duplicity se stejným `m_name`: nechat tu, která má recept nebo zdroj.
-5. Bez zdroje i bez použití (žádný recept, konverze, drop, sběr, obchodník, ingredience): skrýt.
-   Config `Katalog / Skrýt nedostupné` (výchozí zapnuto).
-6. Stavby: skrýt `m_repairPiece`/`m_removePiece`, stavby bez surovin (kromě semínek a sazenic) a stanice, které nejsou
-   v žádné tabulce nástroje (`fire_pit_haldor`, `goblin_bed`…). Hostiny (`Feast`) brát jako jídlo, ne jako nástroj.
-7. Uživatelský ignore list v configu (přesná jména, `*suffix`, `prefix*`).
+2. DLC that is not installed (`m_dlc` + `DLCMan.IsDLCInstalled`).
+3. Missing translation: hide vanilla entries. Show modded entries under a cleaned-up prefab name (`SwordBlackmetal_TW`
+   → "Sword Blackmetal TW").
+4. Duplicates with the same `m_name`: keep the one that has a recipe or a source.
+5. No source and no use (no recipe, conversion, drop, pickup, trader, ingredient): hide.
+   Config `Catalog / Hide unobtainable` (on by default).
+6. Pieces: hide `m_repairPiece`/`m_removePiece`, pieces without resources (except seeds and saplings) and stations that are
+   not in any tool's piece table (`fire_pit_haldor`, `goblin_bed`…). Treat feasts (`Feast`) as food, not as a tool.
+7. User ignore list in the config (exact names, `*suffix`, `prefix*`).
 
-### 1.2 Metadata položky
-`Entry` dostane: hlavní kategorii, podkategorie, množinu tagů, biom (pořadí postupu), úroveň stanice, sadu
-(`m_setName`) a hodnoty jídla. Tagy se počítají jednou při stavbě katalogu.
+### 1.2 Entry metadata
+`Entry` gets: main category, subcategories, a set of tags, biome (progression order), station level, set
+(`m_setName`) and food values. Tags are computed once when the catalog is built.
 
-### 1.3 Progression (biom)
-- Pořadí: Louky 0, Černý les 1, Bažina 2, Hory 3, Pláně 4, Mlžné země 5, Popelavé země 6, Hluboký sever 7.
-  Moře má vlastní tag `#ocean` a pořadí mezi Bažinou a Horami. Bez zdroje = „neznámý“, řadí se na konec.
-- Seed z přímých zdrojů (nejnižší biom): vegetace a její dropy, tvorové ze spawn listů a jejich dropy. Biom
-  obchodníka a lokace se bere jen jako max(biom místa, biom bosse z `m_requiredGlobalKey`).
-- Propagace do ustáleného stavu. Recept má max(biomy ingrediencí, biom stanice a její úrovně). Položka má min přes
-  všechny cesty, jak ji získat. U „stačí jedna ingredience“ se bere min. Vylepšení (q>1) se do propagace nepočítají.
-- Biom stanice je biom její stavby, úroveň L je L-tý nejnižší biom jejích rozšíření.
-- Malá vanilla override tabulka (Chitin, Serpent meat, Coins, Amber, Ruby, dropy bossů) a uživatelský override v configu.
-- Biomový index se staví líně po vstupu do světa. `ZoneSystem` v menu neexistuje a spawn listy módů můžou dorazit
-  až se synchronizací ze serveru.
+### 1.3 Progression (biome)
+- Order: Meadows 0, Black Forest 1, Swamp 2, Mountains 3, Plains 4, Mistlands 5, Ashlands 6, Deep North 7.
+  Ocean has its own tag `#ocean` and sits between Swamp and Mountains. No source = "Unknown", sorted last.
+- Seed from direct sources (lowest biome): vegetation and its drops, creatures from spawn lists and their drops. The biome
+  of a trader or location is only taken as max(biome of the place, biome of the boss from `m_requiredGlobalKey`).
+- Propagate to a fixed point. A recipe gets max(ingredient biomes, biome of the station and its level). An entry gets
+  the min over all ways to obtain it. For "any one ingredient" the min is used. Upgrades (q>1) are not propagated.
+- A station's biome is the biome of its piece; level L is the L-th lowest biome of its extensions.
+- A small vanilla override table (Chitin, Serpent meat, Coins, Amber, Ruby, boss drops) and a user override in the config.
+- The biome index is built lazily after entering the world. `ZoneSystem` does not exist in the menu and modded spawn lists
+  may only arrive with the server sync.
 
-### 1.4 Nový pohled „Jak získat“
-Vedle receptů karty bez výroby: drop z tvora (se šancí), sběr, těžba (s potřebným tierem krumpáče), strom, truhla
-v lokaci, obchodník (cena, podmínka). Na kartě je biom. Data padnou zadarmo ze seed fáze 1.3.
+### 1.4 New "Sources" view
+Next to recipes, cards without crafting: creature drop (with chance), pickup, mining (with the required pickaxe tier), tree,
+chest in a location, trader (price, condition). The card shows the biome. The data come for free from the seed phase in 1.3.
 
-## 2. Hledání a tagy (nahradí záložky kategorií)
-- Slova: všechna musí sedět v názvu nebo prefabu, jako dnes.
-- `@mód`: jako dnes.
-- `#tag`: tag položky. Dvojtečka znamená „a zároveň“, takže `#weapons:plains` = `#weapons` + `#plains`
-  a `#food:stamina` = `#food` + `#stamina`. Prefix stačí (`#swo` → `#swords`), pokud je jednoznačný.
-- `-x`: negace libovolného tokenu (`-@Therzie`, `-#pieces`, `-kůže`).
-- `^název`: položky, které mají danou položku jako ingredienci.
-- `|` mezi tokeny: nebo (`#swords|#axes`).
-- Našeptávač pod polem: při psaní `#`/`@` nabídne tagy nebo módy s počtem výsledků, Tab doplní.
-- Pod polem řádek „čipů“ (Zbraně, Zbroj, Jídlo, Materiály, Stavby…). Klik vloží nebo odebere tag v hledání,
-  pravý klik ho vloží negovaný. Čipy jsou jen zkratka, stav je vždy vidět v textu hledání.
+## 2. Search and tags (replaces category tabs)
+- Words: all must match the name or prefab, as before.
+- `@mod`: as before.
+- `#tag`: entry tag. A colon means "and", so `#weapons:plains` = `#weapons` + `#plains`
+  and `#food:stamina` = `#food` + `#stamina`. A prefix is enough (`#swo` → `#swords`) if it is unambiguous.
+- `-x`: negation of any token (`-@Therzie`, `-#pieces`, `-leather`).
+- `^name`: entries that use the given entry as an ingredient.
+- `|` between tokens: or (`#swords|#axes`).
+- Suggestions below the field: while typing `#`/`@`, offer tags or mods with result counts, Tab completes.
+- Below the field a row of "chips" (Weapons, Armor, Food, Materials, Pieces…). Click inserts or removes the tag in the search,
+  right click inserts it negated. Chips are only a shortcut, the state is always visible in the search text.
 
-### 2.1 Tagy (anglicky, krátké; v našeptávači s českým popisem)
-- Kategorie: `#materials #food #potions #weapons #armor #ammo #tools #pieces #trophies #fish #misc`.
-- Zbraně: `#swords #axes #battleaxes #clubs #sledges #spears #polearms #knives #fists #bows #crossbows #staffs
-  #shields` a `#1h`/`#2h`. Štíty: `#tower #buckler`.
-- Zbroj: `#helmet #chest #legs #cape #gloves #utility #trinket`, sady `#set:<jméno>`.
-- Jídlo: `#health #stamina #eitr #balanced` (převažující složka), `#meads`, `#drinks`.
-- Stavby podle `PieceCategory`: `#crafting #building #stone #furniture #feasts`, a `#seeds`.
-- Biomy: `#meadows #blackforest #swamp #mountains #plains #mistlands #ashlands #deepnorth #ocean #unknown`.
-- Stav: `#craftable` (teď jde vyrobit z inventáře a u blízké stanice), `#bookmarked`, `#station:<stanice>`.
+### 2.1 Tags (English, short; with a description in the suggestions)
+- Categories: `#materials #food #potions #weapons #armor #ammo #tools #pieces #trophies #fish #misc`.
+- Weapons: `#swords #axes #battleaxes #clubs #sledges #spears #polearms #knives #fists #bows #crossbows #staffs
+  #shields` and `#1h`/`#2h`. Shields: `#tower #buckler`.
+- Armor: `#helmet #chest #legs #cape #gloves #utility #trinket`, sets `#set:<name>`.
+- Food: `#health #stamina #eitr #balanced` (dominant stat), `#meads`, `#drinks`.
+- Pieces by `PieceCategory`: `#crafting #building #stone #furniture #feasts`, and `#seeds`.
+- Biomes: `#meadows #blackforest #swamp #mountains #plains #mistlands #ashlands #deepnorth #ocean #unknown`.
+- State: `#craftable` (can be crafted now from the inventory at a nearby station), `#bookmarked`, `#station:<station>`.
 
-## 3. Řazení
-- Výchozí: biom → kategorie → podkategorie → úroveň stanice → název. Nad mřížkou přepínač Postup / Název / Mód.
-- Volitelně oddělovač biomu v mřížce (tenký řádek s názvem biomu). Config, výchozí vypnuto.
+## 3. Sorting
+- Default: biome → category → subcategory → station level → name. A Progression / Name / Mod switch above the grid.
+- Optional biome separator in the grid (a thin row with the biome name). Config, off by default.
 
 ## 4. UI
-- **Schovat:** klávesa (config, výchozí `Y`, platí jen při otevřeném inventáři) a tlačítko v hlavičce panelu sbalí oba panely do malé lišty s nadpisem.
-  Stav se pamatuje. Okno receptu se dá otevřít i se sbaleným panelem (R/U nad inventářem).
-- **Přesun a resize:** každý panel (výsledky, záložky, okno receptu) jde přetáhnout za hlavičku a zvětšit za roh.
-  Velikost mřížky se přichytává na celá políčka (sloupce × řádky), okno receptu na celé karty.
-  Pozice a velikosti se ukládají do configu relativně k obrazovce, takže přežijí změnu rozlišení.
-  Tlačítko nebo config „Obnovit rozložení“.
-- **Listování:** kolečko listuje po řádcích, ne po stránkách. Tlačítka `<` `>` listují po stránkách.
-- **Okno receptu:** skupiny stanic se zalomí bez omezení řádků (dnes se zbytek ztratí). Poznámky na kartě se zalamují.
-  Karta ukáže biom receptu.
-- **Vyrobit:** klik na kartu, když stojíš u správné stanice, vybere recept ve vanilla seznamu craftingu.
-- **Počty „máš“:** volitelně i z truhel v okolí, pokud běží CraftFromContainers (soft závislost, jinak jen inventář).
-- **Záložky:** přetažením měnit pořadí. Skupiny záložek až v další verzi.
+- **Collapse:** a key (config, default `Y`, only with the inventory open) and a button in the panel header collapse both
+  panels into a small bar with a title. The state is remembered. The recipe window can be opened even with the panel
+  collapsed (R/U over the inventory).
+- **Move and resize:** each panel (results, bookmarks, recipe window) can be dragged by its header and resized by the corner.
+  The grid size snaps to whole slots (columns × rows), the recipe window to whole cards.
+  Positions and sizes are saved to the config relative to the screen, so they survive resolution changes.
+  A "Reset layout" button or config option.
+- **Scrolling:** the mouse wheel scrolls by rows, not pages. The `<` `>` buttons scroll by pages.
+- **Recipe window:** station groups wrap without a row limit (previously the rest was lost). Notes on a card wrap.
+  The card shows the recipe's biome.
+- **Craft:** clicking a card while standing at the right station selects the recipe in the vanilla crafting list.
+- **"Have" counts:** optionally also from nearby chests if CraftFromContainers is running (soft dependency, otherwise
+  inventory only).
+- **Bookmarks:** reorder by dragging. Bookmark groups in a later version.
 
-## 5. Výkon a robustnost
-- Katalog se přestaví při změně počtu receptů i předmětů v ObjectDB. Biomový index se přepočítá jen tehdy.
-- Hledání nad předpočítanými tagy (HashSet), bez LINQ alokací na každý znak. Mřížka recykluje sloty (už dnes).
-- Stavba katalogu se měří a loguje (cíl < 200 ms, biomový index může běžet v coroutině).
+## 5. Performance and robustness
+- The catalog is rebuilt when the number of recipes or items in ObjectDB changes. The biome index is recomputed only then.
+- Search runs over precomputed tags (HashSet), without LINQ allocations per keystroke. The grid recycles slots (already does).
+- Catalog building is timed and logged (target < 200 ms, the biome index may run in a coroutine).
 
-## 6. Mimo rozsah 1.0
-Server/sync, úprava receptů, cheaty (spawn předmětu), skupiny záložek, export dat.
+## 6. Out of scope for 1.0
+Server/sync, recipe editing, cheats (spawning items), bookmark groups, data export.
 
-## 7. Fáze implementace
-1. Katalog: filtr 1.1, metadata a tagy 1.2, nové hledání 2 a čipy místo záložek, řazení podle kategorie.
-2. Progression: biomový index 1.3, řazení 3, pohled „Jak získat“ 1.4.
-3. UI: schování, přesun a resize, uložení rozložení, listování po řádcích, opravy okna receptu.
-4. Doplňky: vyrobit z karty, počty z truhel, `#craftable`, pořadí záložek.
+## 7. Implementation phases
+1. Catalog: filter 1.1, metadata and tags 1.2, new search 2 and chips instead of tabs, sorting by category.
+2. Progression: biome index 1.3, sorting 3, "Sources" view 1.4.
+3. UI: collapsing, move and resize, saving the layout, scrolling by rows, recipe window fixes.
+4. Extras: craft from a card, counts from chests, `#craftable`, bookmark order.

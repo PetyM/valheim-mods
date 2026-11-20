@@ -4,13 +4,13 @@ using Biome = Heightmap.Biome;
 
 namespace RecipeBrowser;
 
-/// <summary>Pořadí biomů a výpočet biomu položek (SPEC 1.3).</summary>
+/// <summary>Biome order and computation of entry biomes (SPEC 1.3).</summary>
 internal static class Progression
 {
     public const int Meadows = 0, BlackForest = 1, Swamp = 2, Ocean = 3, Mountain = 4, Plains = 5, Mistlands = 6, AshLands = 7, DeepNorth = 8;
-    public const string UnknownName = "Neznámý", UnknownTag = "unknown";
+    public const string UnknownName = "Unknown", UnknownTag = "unknown";
 
-    private static readonly string[] Names = { "Louky", "Černý les", "Bažina", "Moře", "Hory", "Pláně", "Mlžné země", "Popelavé země", "Hluboký sever" };
+    private static readonly string[] Names = { "Meadows", "Black Forest", "Swamp", "Ocean", "Mountains", "Plains", "Mistlands", "Ashlands", "Deep North" };
     private static readonly string[] TagNames = { "meadows", "blackforest", "swamp", "ocean", "mountains", "plains", "mistlands", "ashlands", "deepnorth" };
     private static readonly (Biome biome, int rank)[] Bits =
     {
@@ -22,9 +22,9 @@ internal static class Progression
         ["defeated_eikthyr"] = Meadows, ["defeated_gdking"] = BlackForest, ["defeated_bonemass"] = Swamp, ["defeated_dragon"] = Mountain,
         ["defeated_goblinking"] = Plains, ["defeated_queen"] = Mistlands, ["defeated_fader"] = AshLands,
     };
-    private static readonly string[] BossNames = { "Eikthyr", "Starší", "Bonemass", "Moder", "Yagluth", "Královna", "Fader" };
+    private static readonly string[] BossNames = { "Eikthyr", "The Elder", "Bonemass", "Moder", "Yagluth", "The Queen", "Fader" };
 
-    // Ruční přiřazení tam, kde herní data biom nedají (moře, bossové v lokacích, truhly všude).
+    // Manual assignment where game data gives no biome (ocean, bosses in locations, chests everywhere).
     private static readonly Dictionary<string, int> VanillaOverrides = new()
     {
         ["Chitin"] = Ocean, ["SerpentMeat"] = Ocean, ["SerpentScale"] = Ocean, ["TrophySerpent"] = Ocean,
@@ -41,7 +41,7 @@ internal static class Progression
     public static string Tag(int? rank) => rank is >= 0 and < 9 ? TagNames[rank.Value] : UnknownTag;
     public static IReadOnlyList<string> Tags => TagNames;
 
-    /// <summary>Nejnižší pořadí přes bity masky, null pro prázdnou masku.</summary>
+    /// <summary>Lowest rank over the mask bits, null for an empty mask.</summary>
     public static int? FromMask(Biome mask)
     {
         foreach (var (biome, rank) in Bits.OrderBy(b => b.rank))
@@ -51,14 +51,14 @@ internal static class Progression
 
     public static IEnumerable<int> RanksOf(Biome mask) => Bits.Where(b => (mask & b.biome) != 0).Select(b => b.rank).OrderBy(r => r);
 
-    /// <summary>Biom bosse, po jehož poražení je globální klíč nastaven. Neznámý klíč = null.</summary>
+    /// <summary>Biome of the boss whose defeat sets the global key. Unknown key = null.</summary>
     public static int? FromKey(string key) => !string.IsNullOrEmpty(key) && BossKeys.TryGetValue(key.ToLowerInvariant(), out var rank) ? rank : null;
 
-    public static string KeyLabel(string key) => FromKey(key) is { } rank ? $"po poražení: {BossNames[rank > Ocean ? rank - 1 : rank]}" : $"klíč: {key}";
+    public static string KeyLabel(string key) => FromKey(key) is { } rank ? $"after defeating {BossNames[rank > Ocean ? rank - 1 : rank]}" : $"key: {key}";
 
     public static int? Max(int? a, int? b) => a.HasValue && b.HasValue ? System.Math.Max(a.Value, b.Value) : a ?? b;
 
-    /// <summary>Hádání biomu ze jména prefabu (truhly, sběr mimo vegetaci). Jen slabý zdroj.</summary>
+    /// <summary>Guesses the biome from the prefab name (chests, pickables outside vegetation). Weak source only.</summary>
     public static int? GuessFromName(string name)
     {
         string n = name.ToLowerInvariant();
@@ -81,7 +81,7 @@ internal static class Progression
         return null;
     }
 
-    /// <summary>Vanilla tabulka doplněná o uživatelský override z configu (má přednost).</summary>
+    /// <summary>Vanilla table extended with user overrides from config (they take precedence).</summary>
     public static Dictionary<string, int> Overrides()
     {
         var result = new Dictionary<string, int>(VanillaOverrides);
@@ -90,14 +90,14 @@ internal static class Progression
             var parts = pair.Split('=');
             if (parts.Length != 2 || parts[0].Trim().Length == 0) continue;
             if (ParseRank(parts[1]) is { } rank) result[parts[0].Trim()] = rank;
-            else DataConfig.Log.LogWarning($"Neznámý biom v přepisu: {pair}");
+            else DataConfig.Log.LogWarning($"Unknown biome in override: {pair}");
         }
         return result;
     }
 
     /// <summary>
-    /// Propagace biomů do ustáleného stavu: zdroje dávají počáteční biom, karta výroby má max(vstupy, stanice na dané úrovni),
-    /// položka min přes všechny karty. Slabé zdroje (obchodníci, truhly podle jména) jen pro to, co zůstalo neznámé.
+    /// Propagates biomes to a fixed point: sources give the initial biome, a crafting card has max(inputs, station at the given level),
+    /// an entry has the min over all its cards. Weak sources (traders, chests by name) only fill in what stayed unknown.
     /// </summary>
     public static void Assign(ICollection<Entry> entries, IReadOnlyList<RecipeCard> cards, Dictionary<Entry, List<Entry>> extensions, Dictionary<string, int> overrides)
     {
@@ -112,7 +112,7 @@ internal static class Progression
         var tools = entries.Where(e => e.Drop && e.Drop.m_itemData.m_shared.m_toolTier > 0).ToList();
         var active = cards.Where(c => !c.IsUpgrade && !c.Weak).ToList();
         Run(active, null);
-        // Slabé zdroje smí jen doplnit, co po prvním průchodu zůstalo neznámé; aktivní karty pak mohou snižovat dál.
+        // Weak sources may only fill in what stayed unknown after the first pass; active cards can then lower it further.
         var seeded = new HashSet<Entry>(biome.Keys);
         Run(cards.Where(c => c.Weak && c.Outputs.Any(o => !seeded.Contains(o.Entry))).Concat(active).ToList(), seeded);
         foreach (var entry in entries) entry.Biome = biome.TryGetValue(entry, out var rank) ? rank : null;

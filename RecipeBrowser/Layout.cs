@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace RecipeBrowser;
 
-/// <summary>Výchozí rozložení (pruh dole). Uživatelská přesunutí a velikosti ukládá UiConfig a mají přednost.</summary>
+/// <summary>Default layout (strip at the bottom). User moves and sizes are saved by UiConfig and take precedence.</summary>
 internal sealed record Layout(float Cell, float SlotSize, int Rows, Rect Results, Rect Bookmarks, Rect Window)
 {
     private const float Margin = 12, ResultsShare = 0.62f, MaxWindowHeight = 1300, WindowWidth = 680;

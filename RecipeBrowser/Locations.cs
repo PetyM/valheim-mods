@@ -8,9 +8,9 @@ using UnityEngine;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Biomy prefabů z lokací a jejich dungeonů (SPEC 1.3 a 1.4: truhly v lokaci, oltáře, tvorové jen z lokací).
-/// Prefaby lokací jsou SoftReference v asset bundlech, proto se načítají postupně v coroutině jednou za svět
-/// a po dokončení se zvýší Version (katalog se přestaví). Drží se jen jména prefabů a pořadí biomů.
+/// Biomes of prefabs from locations and their dungeons (SPEC 1.3 and 1.4: chests in locations, altars, creatures only found in locations).
+/// Location prefabs are SoftReferences in asset bundles, so they are loaded gradually in a coroutine once per world
+/// and Version is incremented when done (the catalog gets rebuilt). Only prefab names and biome ranks are kept.
 /// </summary>
 internal static class Locations
 {
@@ -20,15 +20,15 @@ internal static class Locations
     private static ZoneSystem scannedFor;
     private static Dictionary<string, SortedSet<int>> places = new(), creatures = new();
 
-    /// <summary>Zvýší se po dokončení skenu; Catalog.IsStale ho porovnává.</summary>
+    /// <summary>Incremented when the scan finishes; Catalog.IsStale compares it.</summary>
     public static int Version { get; private set; }
     public static bool Done { get; private set; }
-    /// <summary>Prefaby se ZNetView umístěné v lokacích (truhly, sběr, rudy, obchodníci…) a biomy, kde lokace stojí.</summary>
+    /// <summary>Prefabs with a ZNetView placed in locations (chests, pickables, ores, traders…) and the biomes the locations are in.</summary>
     public static IReadOnlyDictionary<string, SortedSet<int>> Places => places;
-    /// <summary>Tvorové ze spawnerů, spawn oblastí a oltářů v lokacích.</summary>
+    /// <summary>Creatures from spawners, spawn areas and altars in locations.</summary>
     public static IReadOnlyDictionary<string, SortedSet<int>> Creatures => creatures;
 
-    /// <summary>Spustí sken, pokud pro aktuální ZoneSystem ještě neběžel. Volat jen ve světě.</summary>
+    /// <summary>Starts the scan if it has not run for the current ZoneSystem yet. Call only in a world.</summary>
     public static void EnsureStarted(MonoBehaviour host)
     {
         var zone = ZoneSystem.instance;
@@ -43,7 +43,7 @@ internal static class Locations
     private static IEnumerator Scan(ZoneSystem zone)
     {
         var watch = Stopwatch.StartNew();
-        // Vlastní mapy, zveřejní se až na konci: sken starého světa nesmí psát do nového.
+        // Own maps, published only at the end: a scan of an old world must not write into the new one.
         var foundPlaces = new Dictionary<string, SortedSet<int>>();
         var foundCreatures = new Dictionary<string, SortedSet<int>>();
         void ScanPrefab(GameObject go, List<int> ranks) => Locations.ScanPrefab(go, ranks, foundPlaces, foundCreatures);
@@ -70,10 +70,10 @@ internal static class Locations
         creatures = foundCreatures;
         Done = true;
         Version++;
-        DataConfig.Log.LogInfo($"Lokace: {locations.Count} lokací, {roomCount} místností dungeonů, {places.Count} prefabů, {creatures.Count} tvorů, {watch.ElapsedMilliseconds} ms.");
+        DataConfig.Log.LogInfo($"Locations: {locations.Count} locations, {roomCount} dungeon rooms, {places.Count} prefabs, {creatures.Count} creatures, {watch.ElapsedMilliseconds} ms.");
     }
 
-    // Po dávkách: LoadAsync drží referenci, Release ji vrátí (bundle se uvolní, když ho nedrží nikdo jiný).
+    // In batches: LoadAsync holds a reference, Release returns it (the bundle is unloaded when nobody else holds it).
     private static IEnumerator Load(List<(SoftReference<GameObject> asset, List<int> ranks)> list, System.Action<GameObject, List<int>> scan)
     {
         for (int i = 0; i < list.Count && scannedFor; i += Batch)
@@ -89,7 +89,7 @@ internal static class Locations
                 }
                 catch (System.Exception e)
                 {
-                    DataConfig.Log.LogWarning($"Lokace {item.asset.Name} přeskočena: {e.Message}");
+                    DataConfig.Log.LogWarning($"Location {item.asset.Name} skipped: {e.Message}");
                 }
                 finally
                 {
@@ -118,7 +118,7 @@ internal static class Locations
         set.UnionWith(ranks);
     }
 
-    // Vnořený prefab v lokaci se jmenuje jako prefab, případně s " (1)".
+    // A nested prefab in a location is named like the prefab, possibly with " (1)".
     private static string PrefabName(string name)
     {
         int index = name.IndexOf(" (", System.StringComparison.Ordinal);

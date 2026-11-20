@@ -23,7 +23,7 @@ internal sealed class Bookmarks(string path)
         if (keys.Remove(key)) File.WriteAllLines(path, keys);
     }
 
-    /// <summary>Přesune záložku na místo cílové (null = na konec).</summary>
+    /// <summary>Moves a bookmark to the target's place (null = to the end).</summary>
     public void Move(string key, string target)
     {
         if (key == target || !keys.Contains(key)) return;

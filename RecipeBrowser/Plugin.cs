@@ -31,14 +31,14 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         ModQuery.Enable();
-        recipesKey = Config.Bind("Klávesy", "Jak vyrobit", new KeyboardShortcut(KeyCode.R), "Recepty předmětu pod kurzorem.");
-        usagesKey = Config.Bind("Klávesy", "K čemu je", new KeyboardShortcut(KeyCode.U), "Kde se předmět pod kurzorem používá.");
-        bookmarkKey = Config.Bind("Klávesy", "Záložka", new KeyboardShortcut(KeyCode.A), "Přidá předmět pod kurzorem do záložek, v záložkách ho odebere.");
-        backKey = Config.Bind("Klávesy", "Zpět", new KeyboardShortcut(KeyCode.Backspace));
-        collapseKey = Config.Bind("Klávesy", "Schovat", new KeyboardShortcut(KeyCode.Y), "Sbalí nebo rozbalí panely (jen při otevřeném inventáři).");
+        recipesKey = Config.Bind("Keys", "Recipes", new KeyboardShortcut(KeyCode.R), "Recipes for the item under the cursor.");
+        usagesKey = Config.Bind("Keys", "Usages", new KeyboardShortcut(KeyCode.U), "Where the item under the cursor is used.");
+        bookmarkKey = Config.Bind("Keys", "Bookmark", new KeyboardShortcut(KeyCode.A), "Bookmarks the item under the cursor; in the bookmarks panel removes it.");
+        backKey = Config.Bind("Keys", "Back", new KeyboardShortcut(KeyCode.Backspace));
+        collapseKey = Config.Bind("Keys", "Collapse", new KeyboardShortcut(KeyCode.Y), "Collapses or expands the panels (only with the inventory open).");
         DataConfig.Bind(Config);
         UiConfig.Bind(Config);
-        rows = Config.Bind("Zobrazení", "Řádky", 5, new ConfigDescription("Počet řádků panelů dole.", new AcceptableValueRange<int>(2, 10)));
+        rows = Config.Bind("Display", "Rows", 5, new ConfigDescription("Number of rows in the bottom panels.", new AcceptableValueRange<int>(2, 10)));
         new Harmony("michal.recipebrowser").PatchAll();
         Browser.Log = Logger.LogInfo;
         bookmarks = new Bookmarks(Path.Combine(BepInEx.Paths.ConfigPath, "michal.recipebrowser.bookmarks.txt"));
@@ -46,7 +46,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Update()
     {
-        // Lokace se načítají na pozadí hned po vstupu do světa, ne až s inventářem.
+        // Locations are scanned in the background right after entering the world, not when the inventory opens.
         if (DataConfig.ScanLocations.Value && Player.m_localPlayer && ZoneSystem.instance) Locations.EnsureStarted(this);
         if (!Player.m_localPlayer || !InventoryGui.IsVisible() || !GUIManager.CustomGUIFront)
         {
@@ -59,7 +59,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
         var db = ObjectDB.instance;
         if (!db || !ZNetScene.instance) return;
-        // Přestavba při změně ObjectDB (sync ze serveru), spawnů módů nebo configu katalogu; souhrn loguje Catalog.
+        // Rebuild when ObjectDB changes (server sync), mod spawns or the catalog config change; Catalog logs the summary.
         if ((catalog == null || catalogSource != db || catalog.IsStale(db)) && Time.time >= retryAt) RebuildCatalog(db);
         if (catalog == null) return;
         if (openedAt < 0) openedAt = Time.time;
@@ -109,8 +109,8 @@ public sealed class Plugin : BaseUnityPlugin
         }
         catch (System.Exception e)
         {
-            // Bez zacyklení: chyba (třeba kvůli cizímu módu) se zaloguje, zůstane starý katalog a zkusí se to znovu za chvíli.
-            Logger.LogError($"Stavba katalogu selhala: {e}");
+            // No retry loop: the error (e.g. caused by another mod) is logged, the old catalog stays and it is retried a bit later.
+            Logger.LogError($"Catalog build failed: {e}");
             retryAt = Time.time + RetryDelay;
             return;
         }

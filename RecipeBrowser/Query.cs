@@ -6,18 +6,18 @@ using System.Text.RegularExpressions;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Rozparsovaný dotaz z pole hledání (SPEC kap. 2): slova, @mód, #tag (':' = a zároveň, jednoznačný prefix),
-/// -negace, ^ingredience, '|' = nebo. Tokeny oddělené mezerou musí platit všechny.
+/// Parsed query from the search field (SPEC ch. 2): words, @mod, #tag (':' = and, unambiguous prefix),
+/// -negation, ^ingredient, '|' = or. All space-separated tokens must match.
 /// </summary>
 internal sealed class Query
 {
-    /// <summary>Je položka v záložkách? Nastavuje UI (záložky drží ono), bez něj #bookmarked nic nenajde.</summary>
+    /// <summary>Is the entry bookmarked? Set by the UI (it owns the bookmarks); without it #bookmarked finds nothing.</summary>
     public static Func<Entry, bool> IsBookmarked { get; set; }
 
     private readonly List<Func<Entry, bool>> terms = new();
 
     public bool IsEmpty => terms.Count == 0;
-    /// <summary>Dotaz závisí na stavu hráče (#craftable, #bookmarked), UI ho má přefiltrovat, když se ten změní.</summary>
+    /// <summary>The query depends on player state (#craftable, #bookmarked); the UI should re-filter when that changes.</summary>
     public bool IsLive { get; private set; }
 
     public static Query Parse(string text, Catalog catalog)
@@ -34,7 +34,7 @@ internal sealed class Query
 
     public bool Matches(Entry entry) => All(terms, entry);
 
-    // Smyčky místo LINQ: Matches běží pro každou položku při každém znaku.
+    // Loops instead of LINQ: Matches runs for every entry on every keystroke.
     private static bool All(IList<Func<Entry, bool>> list, Entry entry)
     {
         for (int i = 0; i < list.Count; i++)
@@ -86,7 +86,7 @@ internal sealed class Query
         }
     }
 
-    /// <summary>Rozdělí "weapons:set:troll" na "weapons" a "set:troll" (jmenné prostory set:/station: drží pohromadě).</summary>
+    /// <summary>Splits "weapons:set:troll" into "weapons" and "set:troll" (keeps the set:/station: namespaces together).</summary>
     private static List<string> TagParts(string body, Catalog catalog)
     {
         var raw = body.ToLowerInvariant().Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
@@ -108,7 +108,7 @@ internal sealed class Query
         if (tag == Tags.Craftable) return e => Stock.CanCraft(e, catalog);
         if (tag == Tags.Bookmarked) return e => IsBookmarked?.Invoke(e) == true;
         if (tag != null) return e => e.Tags.Contains(tag);
-        // Nejednoznačný prefix: stačí kterýkoli tag s tímto začátkem.
+        // Ambiguous prefix: any tag starting with it matches.
         return e =>
         {
             foreach (var t in e.Tags)
@@ -117,7 +117,7 @@ internal sealed class Query
         };
     }
 
-    /// <summary>Přesný tag, nebo jediný tag s daným prefixem; null = nejednoznačné nebo nic.</summary>
+    /// <summary>Exact tag, or the only tag with the given prefix; null = ambiguous or none.</summary>
     private static string Resolve(string part, Catalog catalog)
     {
         if (catalog.TagCounts.ContainsKey(part) || Tags.Dynamic.Contains(part)) return part;
@@ -136,8 +136,8 @@ internal sealed class Query
     private static string Compact(string text) => text.Replace(" ", "");
 
     /// <summary>
-    /// Návrhy pro rozepsaný poslední token (začíná '#', '@' nebo '^', i za '-' a '|'): doplnění, popis, počet výsledků.
-    /// Completion je token bez negace a bez části před '|' (např. "#weapons:plains", "@Therzie", "^Wood").
+    /// Suggestions for the last, partially typed token (starts with '#', '@' or '^', also after '-' and '|'): completion, description, result count.
+    /// Completion is the token without negation and without the part before '|' (e.g. "#weapons:plains", "@Therzie", "^Wood").
     /// </summary>
     public static IReadOnlyList<Suggestion> Suggest(string text, Catalog catalog)
     {
@@ -156,7 +156,7 @@ internal sealed class Query
                 string mod = Compact(body);
                 result.AddRange(catalog.ModCounts.Where(m => Contains(Compact(m.Key), mod))
                     .OrderBy(m => Compact(m.Key).StartsWith(mod, StringComparison.OrdinalIgnoreCase) ? 0 : 1).ThenByDescending(m => m.Value)
-                    .Take(20).Select(m => new Suggestion("@" + Compact(m.Key), m.Key == "Valheim" ? "Vanilla" : "Mód " + m.Key, m.Value)));
+                    .Take(20).Select(m => new Suggestion("@" + Compact(m.Key), m.Key == "Valheim" ? "Vanilla" : "Mod " + m.Key, m.Value)));
                 break;
             case '^':
                 if (body.Length == 0) break;
@@ -165,7 +165,7 @@ internal sealed class Query
                     .OrderBy(e => e.Key.StartsWith(body, StringComparison.OrdinalIgnoreCase) || e.Name.StartsWith(body, StringComparison.OrdinalIgnoreCase) ? 0 : 1).ThenBy(e => e.Name))
                 {
                     int count = catalog.Cards(e, View.Usages).Where(c => c.Inputs.Any(s => s.Entry == e)).SelectMany(c => c.Outputs).Select(o => o.Entry).Distinct().Count();
-                    if (count > 0) result.Add(new Suggestion("^" + e.Key, "Ingredience: " + e.Name, count));
+                    if (count > 0) result.Add(new Suggestion("^" + e.Key, "Ingredient: " + e.Name, count));
                     if (result.Count >= 20) break;
                 }
                 break;
@@ -182,7 +182,7 @@ internal sealed class Query
         if (colon > 0)
         {
             string head = body.Substring(0, colon), partial = body.Substring(colon + 1);
-            // Hlava se vyfiltruje jednou, kandidáti se pak počítají jen nad ní (ne celý katalog za každý tag).
+            // Filter the head once, then count candidates only within it (not the whole catalog per tag).
             var headQuery = Parse("#" + head, catalog);
             var pool = new List<Entry>();
             foreach (var e in catalog.All)
@@ -199,7 +199,7 @@ internal sealed class Query
                 if (count > 0) result.Add(new Suggestion("#" + full, catalog.TagDescription(tag) ?? "", count));
             }
         }
-        // Přesná shoda první, pak podle počtu výsledků.
+        // Exact match first, then by result count.
         var ordered = result.OrderBy(r => r.Completion == "#" + body ? 0 : 1).ThenByDescending(r => r.Count).Take(20).ToList();
         result.Clear();
         result.AddRange(ordered);
@@ -211,5 +211,5 @@ internal sealed class Query
         : tag == Tags.Bookmarked ? catalog.All.Count(e => IsBookmarked?.Invoke(e) == true) : 0;
 }
 
-/// <summary>Návrh našeptávače. Completion je celý token včetně prefixu ('#swords').</summary>
+/// <summary>Autocomplete suggestion. Completion is the whole token including the prefix ('#swords').</summary>
 internal readonly record struct Suggestion(string Completion, string Description, int Count);

@@ -6,8 +6,8 @@ using UnityEngine.UI;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Přesouvatelný a zvětšovatelný panel. Rect je v lokálních souřadnicích plátna (y nahoru), panel má pivot vlevo nahoře.
-/// Fit přichytí požadovaný obdélník (celá políčka, celé karty) a rozvrhne obsah.
+/// Movable and resizable panel. Rect is in local canvas coordinates (y up), the panel pivot is top left.
+/// Fit snaps the requested rectangle (whole slots, whole cards) and lays out the content.
 /// </summary>
 internal sealed class Frame(RectTransform canvas, RectTransform target, Func<Rect, Rect> fit, Vector2 step)
 {
@@ -38,7 +38,7 @@ internal sealed class Frame(RectTransform canvas, RectTransform target, Func<Rec
         drag.Ended = () => Saved?.Invoke(Rect);
     }
 
-    /// <summary>Úchyt v pravém dolním rohu. Musí se po každém Place posunout, proto ho drží rodič s ukotvením do rohu.</summary>
+    /// <summary>Grip in the bottom right corner. Must move after every Place, so it sits in a parent anchored to the corner.</summary>
     public void AddResizeHandle()
     {
         var go = new GameObject("Resize", typeof(RectTransform));
@@ -55,7 +55,7 @@ internal sealed class Frame(RectTransform canvas, RectTransform target, Func<Rec
     }
 }
 
-/// <summary>Tažení myší, pozice předává v lokálních souřadnicích plátna.</summary>
+/// <summary>Mouse dragging, reports positions in local canvas coordinates.</summary>
 internal sealed class Drag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public RectTransform Canvas;
@@ -68,7 +68,7 @@ internal sealed class Drag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public void OnEndDrag(PointerEventData e) => Ended?.Invoke();
 }
 
-/// <summary>Levý a pravý klik (Button reaguje jen na levý).</summary>
+/// <summary>Left and right click (Button only reacts to left).</summary>
 internal sealed class Clicks : MonoBehaviour, IPointerClickHandler
 {
     public Action Left, Right;
@@ -80,7 +80,7 @@ internal sealed class Clicks : MonoBehaviour, IPointerClickHandler
     }
 }
 
-/// <summary>Reaguje už na stisk (dřív, než pole hledání ztratí fokus a našeptávač zmizí) a hlídá najetí myší.</summary>
+/// <summary>Reacts on press already (before the search field loses focus and the suggestions disappear) and tracks hover.</summary>
 internal sealed class Press : MonoBehaviour, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
 {
     public Action Pressed;

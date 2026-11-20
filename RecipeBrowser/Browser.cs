@@ -11,7 +11,7 @@ internal enum View { Recipes, Sources, Upgrades, Usages }
 
 internal enum SortMode { Progression, Name, Mod }
 
-/// <summary>Spojuje panel výsledků s hledáním, panel záložek, okno receptu a lištu sbalených panelů.</summary>
+/// <summary>Ties together the results panel with search, the bookmarks panel, the recipe window and the collapsed-panel bars.</summary>
 internal sealed class Browser
 {
     private const float BarWidth = 250, BarHeight = 52, ResetWidth = 150;
@@ -49,10 +49,10 @@ internal sealed class Browser
         results.Frame.Saved = r => UiConfig.Save(UiConfig.ResultsRect, r, root.rect);
 
         bookmarked = new ItemPanel(root, layout, true, Open, () => Toggle(UiConfig.BookmarksCollapsed), Reorder);
-        var title = Ui.Label(bookmarked.Header, "Záložky", 0, 0, 100, ItemPanel.RowHeight, 18, colour: Ui.Orange);
-        var reset = Ui.Button(bookmarked.Header, "Obnovit rozložení", 0, 0, ResetWidth, ItemPanel.RowHeight, ResetLayout);
+        var title = Ui.Label(bookmarked.Header, "Bookmarks", 0, 0, 100, ItemPanel.RowHeight, 18, colour: Ui.Orange);
+        var reset = Ui.Button(bookmarked.Header, "Reset layout", 0, 0, ResetWidth, ItemPanel.RowHeight, ResetLayout);
         reset.GetComponentInChildren<Text>().fontSize = 13;
-        var hint = Ui.Label(bookmarked.Header, "A nad předmětem přidá / odebere · přetažením změníš pořadí", 0, 0, 100, 30, 14, colour: Ui.Muted);
+        var hint = Ui.Label(bookmarked.Header, "A over an item adds / removes it · drag to reorder", 0, 0, 100, 30, 14, colour: Ui.Muted);
         bookmarked.LayoutHeader = inner =>
         {
             Ui.Place(title.gameObject, bookmarked.Header, 0, 0, Mathf.Max(40, bookmarked.HeaderWidth - ResetWidth - 6), ItemPanel.RowHeight);
@@ -63,8 +63,8 @@ internal sealed class Browser
         bookmarked.Frame.Saved = r => UiConfig.Save(UiConfig.BookmarksRect, r, root.rect);
 
         window = new RecipeWindow(root, catalog, layout.Window);
-        resultsBar = CreateBar("Recepty", () => Toggle(UiConfig.ResultsCollapsed));
-        bookmarksBar = CreateBar("Záložky", () => Toggle(UiConfig.BookmarksCollapsed));
+        resultsBar = CreateBar("Recipes", () => Toggle(UiConfig.ResultsCollapsed));
+        bookmarksBar = CreateBar("Bookmarks", () => Toggle(UiConfig.BookmarksCollapsed));
         PlacePanels();
         ApplyCollapsed();
         Filter();
@@ -75,7 +75,7 @@ internal sealed class Browser
     {
         var go = GUIManager.Instance.CreateWoodpanel(root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, BarWidth, BarHeight, false);
         Ui.Label(go.transform, title, 12, 10, 100, 32, 18, colour: Ui.Orange);
-        Ui.Button(go.transform, "Rozbalit", BarWidth - 122, 10, 110, 32, expand);
+        Ui.Button(go.transform, "Expand", BarWidth - 122, 10, 110, 32, expand);
         go.SetActive(false);
         return go;
     }
@@ -107,7 +107,7 @@ internal sealed class Browser
             .Concat(gui.m_playerGrid.m_elementPrefab.GetComponentsInChildren<UITooltip>(true))
             .Concat(gui.GetComponentsInChildren<UITooltip>(true))
             .FirstOrDefault(t => t.m_tooltipPrefab);
-        Log?.Invoke(source ? $"Tooltip z {source.name} ({source.m_tooltipPrefab.name})" : "Prefab tooltipu nenalezen");
+        Log?.Invoke(source ? $"Tooltip from {source.name} ({source.m_tooltipPrefab.name})" : "Tooltip prefab not found");
         return source ? source.m_tooltipPrefab : null;
     }
 
@@ -136,7 +136,7 @@ internal sealed class Browser
         bookmarksBar.SetActive(visible && bookmarksCollapsed);
     }
 
-    /// <summary>Klávesa: když je něco rozbalené, sbalí oba panely, jinak oba rozbalí.</summary>
+    /// <summary>Hotkey: if anything is expanded, collapses both panels, otherwise expands both.</summary>
     public void ToggleCollapsed()
     {
         bool collapse = !UiConfig.ResultsCollapsed.Value || !UiConfig.BookmarksCollapsed.Value;

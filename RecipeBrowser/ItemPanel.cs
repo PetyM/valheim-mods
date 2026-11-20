@@ -7,9 +7,9 @@ using UnityEngine.UI;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Panel s hlavičkou a mřížkou položek. Hlavička slouží k přesunu, roh ke změně velikosti po celých políčkách.
-/// Kolečko listuje po řádcích, tlačítka po stránkách. Obsah hlavičky rozvrhuje vlastník přes LayoutHeader.
-/// Volitelně (Section) vloží před každou skupinu řádek s jejím názvem (oddělovač biomu).
+/// Panel with a header and a grid of items. Drag by the header, resize by the corner in whole slots.
+/// The wheel scrolls by rows, the buttons by pages. The owner lays out the header content via LayoutHeader.
+/// Optionally (Section) inserts a row with the group name before each group (biome separator).
 /// </summary>
 internal sealed class ItemPanel
 {
@@ -26,7 +26,7 @@ internal sealed class ItemPanel
     private readonly Text pageLabel;
     private readonly List<Slot> slots = new();
     private readonly List<Text> headings = new();
-    // Řádky mřížky: buď úsek položek (Start, Count), nebo nadpis skupiny (Heading != null).
+    // Grid rows: either a run of items (Start, Count) or a group heading (Heading != null).
     private readonly List<(int Start, int Count, string Heading)> lines = new();
     private List<Entry> entries = new();
     private int columns, rows, first, linedFor = -1;
@@ -34,12 +34,12 @@ internal sealed class ItemPanel
 
     public GameObject Root { get; }
     public Transform Header => header;
-    /// <summary>Šířka prvního řádku hlavičky bez stránkování a tlačítka sbalení.</summary>
+    /// <summary>Width of the first header row without the pager and the collapse button.</summary>
     public float HeaderWidth { get; private set; }
     public Frame Frame { get; }
-    /// <summary>Rozvrhne obsah hlavičky pro danou vnitřní šířku a vrátí její výšku.</summary>
+    /// <summary>Lays out the header content for the given inner width and returns its height.</summary>
     public Func<float, float> LayoutHeader { get; set; } = _ => RowHeight + 6;
-    /// <summary>Název skupiny položky pro oddělovací řádky; null = bez oddělovačů. Platí od dalšího Show.</summary>
+    /// <summary>Group name of an item for separator rows; null = no separators. Takes effect from the next Show.</summary>
     public Func<Entry, string> Section { get; set; }
 
     public static float Height(int rows, float cell) => Pad * 2 + HeaderHeight + rows * cell;
@@ -118,7 +118,7 @@ internal sealed class ItemPanel
         Refresh();
     }
 
-    /// <summary>Posun o celé řádky (first je index prvního viditelného řádku).</summary>
+    /// <summary>Scrolls by whole rows (first is the index of the first visible row).</summary>
     private void Scroll(int deltaRows)
     {
         first += deltaRows;

@@ -8,17 +8,17 @@ using UnityEngine.UI;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Okno receptu: pohledy (vyrobit, získat, vylepšení, použití), skupiny stanic a karty. Přesun za titulek,
-/// změna velikosti za roh po celých kartách. Skupiny se zalamují bez omezení, okno kvůli nim roste nahoru.
+/// Recipe window: views (recipes, sources, upgrades, usages), station groups and cards. Drag by the title,
+/// resize by the corner in whole cards. Groups wrap without limit, the window grows upwards to fit them.
 /// </summary>
 internal sealed class RecipeWindow
 {
     private const float SlotSize = 40, Cell = 44, Pad = 16, CardHeight = 132, TabHeight = 30, GroupRowHeight = 28, PagerHeight = 30;
     private const float TabsTop = Pad + 36, GroupsTop = TabsTop + TabHeight + 8, Chrome = GroupsTop + 4 + PagerHeight + 4 + Pad;
     private const float MinWidth = 520, SelectHintWidth = 110;
-    private const string All = "Vše";
+    private const string All = "All";
     private static readonly (View view, string label)[] Views =
-        { (View.Recipes, "Jak vyrobit"), (View.Sources, "Jak získat"), (View.Upgrades, "Vylepšení"), (View.Usages, "K čemu je") };
+        { (View.Recipes, "Recipes"), (View.Sources, "Sources"), (View.Upgrades, "Upgrades"), (View.Usages, "Usages") };
 
     private readonly RectTransform canvas;
     private readonly Catalog catalog;
@@ -46,7 +46,7 @@ internal sealed class RecipeWindow
         Root = GUIManager.Instance.CreateWoodpanel(canvas, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, MinWidth, 400, false);
         handle = Ui.Rect("Handle", Root.transform, 0, 0, MinWidth, TabsTop);
         title = Ui.Label(Root.transform, "", Pad, Pad, 100, 34, 22, colour: Ui.Orange);
-        back = Ui.Button(Root.transform, "Zpět", 0, Pad, 90, 30, Back);
+        back = Ui.Button(Root.transform, "Back", 0, Pad, 90, 30, Back);
         close = Ui.Button(Root.transform, "×", 0, Pad, 34, 30, Close);
         foreach (var (view, _) in Views)
         {
@@ -71,7 +71,7 @@ internal sealed class RecipeWindow
         Root.SetActive(false);
     }
 
-    /// <summary>Výchozí místo: dole uprostřed oblasti, výška na celé karty s rezervou na jeden řádek skupin.</summary>
+    /// <summary>Default placement: bottom centre of the area, height in whole cards with room for one row of groups.</summary>
     public static Rect DefaultRect(Rect area)
     {
         float w = Mathf.Max(MinWidth, area.width);
@@ -112,7 +112,7 @@ internal sealed class RecipeWindow
 
     public void Open(Entry entry, View view) => Show(entry, view, remember: true);
 
-    /// <summary>Překreslí karty (počty „máš“, výběr u stanice) bez změny stránky.</summary>
+    /// <summary>Redraws the cards ("have" counts, selection at a station) without changing the page.</summary>
     public void Refresh()
     {
         if (IsOpen) RenderCards();
@@ -147,7 +147,7 @@ internal sealed class RecipeWindow
         Root.SetActive(true);
         Root.transform.SetAsLastSibling();
         title.text = $"{entry.Name}  <size=15><color=#bbbbbb>{entry.Mod}</color></size>";
-        // Okno drží spodní hranu a počet karet, skupiny ho zvětší nahoru.
+        // The window keeps its bottom edge and card count, groups make it grow upwards.
         var r = frame.Rect;
         float rows = GroupLayout(width).rows * GroupRowHeight;
         frame.Place(new Rect(r.xMin, r.yMin, r.width, r.height - groupsHeight + rows));
@@ -224,8 +224,8 @@ internal sealed class RecipeWindow
         first = Mathf.Clamp(first, 0, Mathf.Max(0, list.Count - cardsPerPage));
         int last = Mathf.Min(list.Count, first + cardsPerPage);
         string range = list.Count == 0 ? "0" : last - first <= 1 ? $"{first + 1}" : $"{first + 1}–{last}";
-        pageLabel.text = $"{range} z {list.Count}  ·  kolečko listuje · levé tlačítko = jak vyrobit, pravé = k čemu je · Backspace zpět · klik na kartu = vybrat ve výrobě";
-        if (list.Count == 0) Ui.Label(cards, "Nic nenalezeno", Pad, 0, width - Pad * 2, 40, 18, colour: Ui.Muted);
+        pageLabel.text = $"{range} of {list.Count}  ·  wheel scrolls · left click = recipes, right click = usages · Backspace back · click a card to select it in crafting";
+        if (list.Count == 0) Ui.Label(cards, "Nothing found", Pad, 0, width - Pad * 2, 40, 18, colour: Ui.Muted);
         for (int i = first; i < last; i++)
             RenderCard(list[i], (i - first) * CardHeight);
     }
@@ -243,11 +243,11 @@ internal sealed class RecipeWindow
             Slot.Create(cardRoot.transform, x, 4, 32, false, Open).Show(card.Station);
             x += 40;
         }
-        string station = card.Station == null ? "" : $"  ·  {card.Station.Name}" + (card.StationLevel > 1 ? $" úroveň {card.StationLevel}" : "");
+        string station = card.Station == null ? "" : $"  ·  {card.Station.Name}" + (card.StationLevel > 1 ? $" level {card.StationLevel}" : "");
         string biome = card.Biome.HasValue ? $"  <size=14><color=#bbbbbb>· {Progression.Name(card.Biome.Value)}</color></size>" : "";
         var heading = Ui.Label(cardRoot.transform, card.Title + station + biome, x, 4, cardWidth - x - 8 - (selectable ? SelectHintWidth : 0), 32, 18, colour: Ui.Orange);
         BestFit(heading, 18);
-        if (selectable) Ui.Label(cardRoot.transform, "klik = vybrat", cardWidth - SelectHintWidth - 4, 4, SelectHintWidth, 32, 13, TextAnchor.MiddleRight, Ui.Enough);
+        if (selectable) Ui.Label(cardRoot.transform, "click to select", cardWidth - SelectHintWidth - 4, 4, SelectHintWidth, 32, 13, TextAnchor.MiddleRight, Ui.Enough);
 
         x = 8;
         var parts = new List<string>();
@@ -276,7 +276,7 @@ internal sealed class RecipeWindow
         BestFit(label, 14);
     }
 
-    // --- Výběr receptu ve vanilla craftingu ---
+    // --- Selecting the recipe in vanilla crafting ---
 
     private static bool CanSelect(RecipeCard card)
     {
@@ -293,7 +293,7 @@ internal sealed class RecipeWindow
         var gui = InventoryGui.instance;
         if (!gui || !CanSelect(card))
         {
-            Message("Recept vybereš, až budeš stát u správné stanice.");
+            Message("Stand at the right station to select this recipe.");
             return;
         }
         bool upgrade = card.Quality > 1;
@@ -302,7 +302,7 @@ internal sealed class RecipeWindow
             var tab = upgrade ? gui.m_tabUpgrade : gui.m_tabCraft;
             if (!tab.gameObject.activeSelf)
             {
-                Message(upgrade ? "Tahle stanice neumí vylepšovat." : "Tahle stanice neumí vyrábět.");
+                Message(upgrade ? "This station can't upgrade." : "This station can't craft.");
                 return;
             }
             if (upgrade) gui.OnTabUpgradePressed();
@@ -313,7 +313,7 @@ internal sealed class RecipeWindow
         if (index < 0 && upgrade) index = available.FindIndex(p => p.Recipe == card.Recipe);
         if (index < 0)
         {
-            Message(upgrade ? "Ve vylepšení není: chybí předmět v inventáři nebo úroveň." : "Ve výrobě není: recept ještě neznáš.");
+            Message(upgrade ? "Not in upgrades: item missing from inventory or station level too low." : "Not in crafting: you don't know this recipe yet.");
             return;
         }
         gui.SetRecipe(index, center: true);

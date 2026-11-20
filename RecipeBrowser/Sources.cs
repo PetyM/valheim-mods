@@ -5,14 +5,14 @@ using UnityEngine;
 namespace RecipeBrowser;
 
 /// <summary>
-/// Karty „Jak získat“ (SPEC 1.4) a počáteční biomy (SPEC 1.3): vegetace a její dropy, tvorové ze spawn listů, obchodníci,
-/// rybaření, úly a mízovody, prefaby a tvorové z lokací a dungeonů (Locations). Dokud sken lokací neskončí, mají truhly
-/// biom jen podle jména prefabu (slabý zdroj).
+/// Sources cards (SPEC 1.4) and initial biomes (SPEC 1.3): vegetation and its drops, creatures from spawn lists, traders,
+/// fishing, beehives and sap collectors, prefabs and creatures from locations and dungeons (Locations). Until the location scan
+/// finishes, chests only get a biome from the prefab name (weak source).
 /// </summary>
 internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, System.Action<RecipeCard> add)
 {
-    private const string Harvest = "Sběr", Mining = "Těžba", Chopping = "Kácení", Breaking = "Rozbití", Chest = "Truhla",
-        Drop = "Drop z tvora", Fishing = "Rybaření", Trade = "Obchodník";
+    private const string Harvest = "Pickup", Mining = "Mining", Chopping = "Chopping", Breaking = "Breaking", Chest = "Chest",
+        Drop = "Drop", Fishing = "Fishing", Trade = "Trader";
 
     private readonly Dictionary<string, SortedSet<int>> vegetation = new();
     private readonly Dictionary<string, int> creatures = new();
@@ -33,7 +33,7 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
                 foreach (var spawner in veg.m_prefab.GetComponentsInChildren<CreatureSpawner>(true).Where(s => s.m_creaturePrefab))
                     Lower(spawner.m_creaturePrefab.name, lowest);
             }
-        else DataConfig.Log.LogWarning("ZoneSystem neexistuje, biomy z vegetace a spawnů chybí");
+        else DataConfig.Log.LogWarning("ZoneSystem does not exist, biomes from vegetation and spawns are missing");
         foreach (var spawn in SpawnLists().SelectMany(l => l.m_spawners).Where(s => s != null && s.m_enabled && !s.m_devDisabled && s.m_prefab))
             if (Progression.Max(Progression.FromMask(spawn.m_biome), Progression.FromKey(spawn.m_requiredGlobalKey)) is { } rank)
                 Lower(spawn.m_prefab.name, rank);
@@ -74,8 +74,8 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
     private static int signature;
 
     /// <summary>
-    /// Otisk všech spawn listů, které čte Collect (počet listů a spawnů); mění se, když módy po synchronizaci se serverem
-    /// přidají spawny. FindObjectsOfTypeAll není zadarmo, proto se mimo stavbu katalogu (fresh) přepočítá nejvýš jednou za 2 s.
+    /// Fingerprint of all spawn lists read by Collect (number of lists and spawns); changes when mods add spawns after syncing
+    /// with the server. FindObjectsOfTypeAll is not free, so outside a catalog build (fresh) it is recomputed at most every 2 s.
     /// </summary>
     public static int SpawnSignature(bool fresh = false)
     {
@@ -107,7 +107,7 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
             if (find(d.m_prefab.name) is { } entry)
             {
                 outputs.Add(new ItemStack(entry, Mathf.Max(1, d.m_amountMax)));
-                notes.Add($"{entry.Name} {Amount(d.m_amountMin, d.m_amountMax)} {Percent(d.m_chance)}{(d.m_onePerPlayer ? " pro každého hráče" : "")}");
+                notes.Add($"{entry.Name} {Amount(d.m_amountMin, d.m_amountMax)} {Percent(d.m_chance)}{(d.m_onePerPlayer ? " per player" : "")}");
             }
         if (outputs.Count == 0) return;
         if (character.m_boss) notes.Insert(0, "Boss");
@@ -130,8 +130,8 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
         foreach (var item in trader.m_items.Where(i => i.m_prefab))
         {
             if (find(item.m_prefab.name) is not { } entry) continue;
-            var notes = new List<string> { $"Cena: {item.m_price} mincí" };
-            if (!string.IsNullOrEmpty(item.m_requiredGlobalKey)) notes.Add("Podmínka: " + Progression.KeyLabel(item.m_requiredGlobalKey));
+            var notes = new List<string> { $"Price: {item.m_price} coins" };
+            if (!string.IsNullOrEmpty(item.m_requiredGlobalKey)) notes.Add("Requires: " + Progression.KeyLabel(item.m_requiredGlobalKey));
             var inputs = coins != null ? new List<ItemStack> { new(coins, item.m_price) } : new List<ItemStack>();
             add(new RecipeCard($"{Trade} · {name}", Trade, false, null, 0, inputs, new List<ItemStack> { new(entry, Mathf.Max(1, item.m_stack)) }, notes)
             {
@@ -154,7 +154,7 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
         foreach (var bait in baits)
         {
             var inputs = bait == null ? new List<ItemStack>() : new List<ItemStack> { new(find(bait.m_bait.name), 1) };
-            var cardNotes = bait == null ? notes : notes.Prepend($"Záběr: {Percent(bait.m_chance)}").ToList();
+            var cardNotes = bait == null ? notes : notes.Prepend($"Bite chance: {Percent(bait.m_chance)}").ToList();
             add(new RecipeCard($"{Fishing} · {entry.Name}", Fishing, false, null, 0, inputs, outputs, cardNotes) { Kind = CardKind.Source, Seed = rank });
         }
     }
@@ -163,24 +163,24 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
     {
         if (find(prefab.name) is not { } station) return;
         if (prefab.GetComponent<Beehive>() is { m_honeyItem: { } honey } && find(honey.name) is { } honeyEntry)
-            add(new RecipeCard("Produkce", station.Name, false, station, 0, new List<ItemStack>(), new List<ItemStack> { new(honeyEntry, 1) },
-                new List<string> { "Plní se samo časem" }) { Kind = CardKind.Production });
+            add(new RecipeCard("Production", station.Name, false, station, 0, new List<ItemStack>(), new List<ItemStack> { new(honeyEntry, 1) },
+                new List<string> { "Fills up over time" }) { Kind = CardKind.Production });
         if (prefab.GetComponent<SapCollector>() is { m_spawnItem: { } sap } collector && find(sap.name) is { } sapEntry)
-            add(new RecipeCard("Produkce", station.Name, false, station, 0, new List<ItemStack>(), new List<ItemStack> { new(sapEntry, 1) },
-                new List<string> { $"{collector.m_secPerUnit:0} s za kus" }) { Kind = CardKind.Production });
+            add(new RecipeCard("Production", station.Name, false, station, 0, new List<ItemStack>(), new List<ItemStack> { new(sapEntry, 1) },
+                new List<string> { $"{collector.m_secPerUnit:0} s each" }) { Kind = CardKind.Production });
         if (prefab.GetComponent<Incinerator>() is { } incinerator && incinerator.m_conversions != null)
             foreach (var conversion in incinerator.m_conversions.Where(c => c.m_result && find(c.m_result.name) != null))
             {
                 var inputs = conversion.m_requirements.Where(q => q.m_resItem && find(q.m_resItem.name) != null)
                     .Select(q => new ItemStack(find(q.m_resItem.name), q.m_amount)).ToList();
                 if (inputs.Count == 0) continue;
-                add(new RecipeCard("Zpracování", station.Name, false, station, 0, inputs,
-                    new List<ItemStack> { new(find(conversion.m_result.name), conversion.m_resultAmount) }, new List<string> { "Stačí jedna z ingrediencí" })
+                add(new RecipeCard("Processing", station.Name, false, station, 0, inputs,
+                    new List<ItemStack> { new(find(conversion.m_result.name), conversion.m_resultAmount) }, new List<string> { "Any one ingredient" })
                 { Kind = CardKind.Conversion, OnlyOneIngredient = true });
             }
     }
 
-    // Sběr, těžba, kácení, rozbití a truhly: drop tabulky prefabu včetně řetězu (strom → kmen → polena, kámen → úlomky).
+    // Pickup, mining, chopping, breaking and chests: the prefab's drop tables including the chain (tree → log → half logs, rock → fragments).
     private void AddHarvest(GameObject root)
     {
         var found = new Dictionary<string, (List<ItemStack> outputs, List<string> notes, int tier)>();
@@ -192,13 +192,13 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
         if (Locations.Places.TryGetValue(root.name, out var placed)) ranks.UnionWith(placed);
         bool direct = ranks.Count > 0;
         int? seed = direct ? ranks.Min : Progression.GuessFromName(root.name);
-        string biomes = direct ? "Biom: " + string.Join(", ", ranks.Select(Progression.Name)) : null;
+        string biomes = direct ? "Biome: " + string.Join(", ", ranks.Select(Progression.Name)) : null;
         name ??= Filter.CleanName(root.name);
         foreach (var pair in found)
         {
             var (outputs, notes, tier) = pair.Value;
             if (outputs.Count == 0) continue;
-            if (tier > 0) notes.Insert(0, pair.Key == Chopping ? $"Sekera úrovně {tier}+" : $"Krumpáč úrovně {tier}+");
+            if (tier > 0) notes.Insert(0, pair.Key == Chopping ? $"Axe tier {tier}+" : $"Pickaxe tier {tier}+");
             if (biomes != null) notes.Add(biomes);
             add(new RecipeCard($"{pair.Key} · {name}", pair.Key, false, null, 0, new List<ItemStack>(), outputs, notes)
             {
@@ -276,7 +276,7 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
 
     private static string Named(string token) => string.IsNullOrEmpty(token) || Filter.Missing(token) ? null : Localization.instance.Localize(token);
 
-    // Šance na aspoň jeden kus: m_dropChance × (1 − (1 − váha/součet)^max tahů); u m_oneOfEach jen m_dropChance.
+    // Chance of at least one: m_dropChance × (1 − (1 − weight/total)^max rolls); for m_oneOfEach just m_dropChance.
     private void AddTable(DropTable table, List<ItemStack> outputs, List<string> notes)
     {
         if (table?.m_drops == null || table.m_drops.Count == 0) return;
@@ -292,5 +292,5 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
     }
 
     private static string Amount(int min, int max) => min >= max ? $"{Mathf.Max(1, max)}×" : $"{min}–{max}×";
-    private static string Percent(float chance) => chance >= 0.995f ? "100 %" : chance >= 0.1f ? $"{chance * 100:0} %" : $"{chance * 100:0.#} %";
+    private static string Percent(float chance) => chance >= 0.995f ? "100%" : chance >= 0.1f ? $"{chance * 100:0}%" : $"{chance * 100:0.#}%";
 }

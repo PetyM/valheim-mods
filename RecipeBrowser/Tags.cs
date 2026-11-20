@@ -7,55 +7,55 @@ using Type = ItemDrop.ItemData.ItemType;
 
 namespace RecipeBrowser;
 
-/// <summary>Tagy položek (SPEC 2.1): anglicky bez '#', v našeptávači s českým popisem.</summary>
+/// <summary>Item tags (SPEC 2.1): English, without '#', shown with a description in the suggestions.</summary>
 internal static class Tags
 {
     public const string Craftable = "craftable", Bookmarked = "bookmarked", SetPrefix = "set:", StationPrefix = "station:";
 
-    /// <summary>Hlavní kategorie v pořadí pro řazení.</summary>
+    /// <summary>Main categories in sort order.</summary>
     public static readonly string[] Categories = { "materials", "food", "potions", "weapons", "armor", "ammo", "tools", "pieces", "trophies", "fish", "misc" };
 
     private static readonly (string tag, string description)[] Known =
     {
-        ("materials", "Materiály"), ("food", "Jídlo"), ("potions", "Lektvary a medoviny"), ("weapons", "Zbraně"), ("armor", "Zbroj"),
-        ("ammo", "Munice a návnady"), ("tools", "Nástroje"), ("pieces", "Stavby"), ("trophies", "Trofeje"), ("fish", "Ryby"), ("misc", "Ostatní"),
-        ("swords", "Meče"), ("axes", "Sekery"), ("battleaxes", "Bitevní sekery"), ("clubs", "Palice"), ("sledges", "Obouruční kladiva"),
-        ("spears", "Oštěpy"), ("polearms", "Atgeiry"), ("knives", "Nože"), ("fists", "Pěstní zbraně"), ("bows", "Luky"), ("crossbows", "Kuše"),
-        ("staffs", "Magické hole"), ("pickaxes", "Krumpáče"), ("shields", "Štíty"), ("tower", "Velké štíty (bez odrazu)"), ("buckler", "Malé štíty (puklíře)"),
-        ("1h", "Jednoruční"), ("2h", "Obouruční"),
-        ("helmet", "Helmy"), ("chest", "Hrudní zbroj"), ("legs", "Kalhoty"), ("cape", "Pláště"), ("gloves", "Rukavice"), ("utility", "Doplňky (pás, prsten)"),
-        ("trinket", "Talismany"),
-        ("health", "Jídlo: převažuje zdraví"), ("stamina", "Jídlo: převažuje výdrž"), ("eitr", "Jídlo: převažuje eitr"), ("balanced", "Jídlo: vyvážené"),
-        ("meads", "Medoviny"), ("drinks", "Nápoje"), ("feasts", "Hostiny"), ("seeds", "Semínka a sazenice"),
-        ("crafting", "Stavby: výroba a stanice"), ("building", "Stavby: dřevo"), ("stone", "Stavby: kámen"), ("furniture", "Stavby: nábytek"),
-        (Craftable, "Teď jde vyrobit (inventář a stanice v dosahu)"), (Bookmarked, "V záložkách"), (Progression.UnknownTag, "Biom neznámý"),
+        ("materials", "Materials"), ("food", "Food"), ("potions", "Potions and meads"), ("weapons", "Weapons"), ("armor", "Armor"),
+        ("ammo", "Ammo and baits"), ("tools", "Tools"), ("pieces", "Pieces"), ("trophies", "Trophies"), ("fish", "Fish"), ("misc", "Misc"),
+        ("swords", "Swords"), ("axes", "Axes"), ("battleaxes", "Battleaxes"), ("clubs", "Clubs"), ("sledges", "Sledges"),
+        ("spears", "Spears"), ("polearms", "Atgeirs"), ("knives", "Knives"), ("fists", "Fists"), ("bows", "Bows"), ("crossbows", "Crossbows"),
+        ("staffs", "Staffs"), ("pickaxes", "Pickaxes"), ("shields", "Shields"), ("tower", "Tower shields (no parry)"), ("buckler", "Bucklers"),
+        ("1h", "One-handed"), ("2h", "Two-handed"),
+        ("helmet", "Helmets"), ("chest", "Chest armor"), ("legs", "Leg armor"), ("cape", "Capes"), ("gloves", "Gloves"), ("utility", "Utility (belt, ring)"),
+        ("trinket", "Trinkets"),
+        ("health", "Food: mostly health"), ("stamina", "Food: mostly stamina"), ("eitr", "Food: mostly eitr"), ("balanced", "Food: balanced"),
+        ("meads", "Meads"), ("drinks", "Drinks"), ("feasts", "Feasts"), ("seeds", "Seeds and saplings"),
+        ("crafting", "Pieces: crafting and stations"), ("building", "Pieces: wood"), ("stone", "Pieces: stone"), ("furniture", "Pieces: furniture"),
+        (Craftable, "Craftable now (inventory and stations in range)"), (Bookmarked, "Bookmarked"), (Progression.UnknownTag, "Biome unknown"),
     };
 
     private static readonly Dictionary<string, string> Descriptions = Known.ToDictionary(k => k.tag, k => k.description);
     private static readonly Dictionary<string, int> Order = Known.Select((k, i) => (k.tag, i)).ToDictionary(k => k.tag, k => k.i);
 
-    /// <summary>Čipy pod polem hledání: tag a krátký český popisek.</summary>
+    /// <summary>Chips below the search field: tag and short label.</summary>
     public static readonly (string Tag, string Label)[] Chips =
     {
-        ("weapons", "Zbraně"), ("armor", "Zbroj"), ("food", "Jídlo"), ("potions", "Lektvary"), ("materials", "Materiály"), ("ammo", "Munice"),
-        ("tools", "Nástroje"), ("pieces", "Stavby"), ("trophies", "Trofeje"), ("fish", "Ryby"), ("misc", "Ostatní"),
-        (Craftable, "Vyrobitelné"), (Bookmarked, "Záložky"),
+        ("weapons", "Weapons"), ("armor", "Armor"), ("food", "Food"), ("potions", "Potions"), ("materials", "Materials"), ("ammo", "Ammo"),
+        ("tools", "Tools"), ("pieces", "Pieces"), ("trophies", "Trophies"), ("fish", "Fish"), ("misc", "Misc"),
+        (Craftable, "Craftable"), (Bookmarked, "Bookmarked"),
     };
 
-    /// <summary>Tagy, které se počítají za běhu (nejsou v Entry.Tags).</summary>
+    /// <summary>Tags evaluated at runtime (not stored in Entry.Tags).</summary>
     public static readonly string[] Dynamic = { Craftable, Bookmarked };
 
     public static string Describe(string tag)
     {
         if (Descriptions.TryGetValue(tag, out var text)) return text;
         int rank = Progression.Tags.ToList().IndexOf(tag);
-        return rank >= 0 ? "Biom: " + Progression.Name(rank) : null;
+        return rank >= 0 ? "Biome: " + Progression.Name(rank) : null;
     }
 
     public static int CategoryIndex(string tag) => System.Array.IndexOf(Categories, tag) is var i and >= 0 ? i : Categories.Length;
     public static int SubcategoryIndex(string tag) => tag != null && Order.TryGetValue(tag, out var i) ? i : int.MaxValue;
 
-    /// <summary>Malá písmena, bez mezer a diakritiky mimo [a-z0-9_].</summary>
+    /// <summary>Lowercase, spaces to '_', drops everything outside [a-z0-9_] (including diacritics).</summary>
     public static string Sanitize(string text) => Regex.Replace((text ?? "").ToLowerInvariant().Replace(' ', '_'), "[^a-z0-9_]", "");
 
     public static string StationTag(Entry station)
@@ -64,7 +64,7 @@ internal static class Tags
         return StationPrefix + Sanitize(key);
     }
 
-    /// <summary>Hlavní kategorie, podkategorie a tagy předmětu.</summary>
+    /// <summary>Main category, subcategory and tags of an item.</summary>
     public static void OfItem(Entry entry, ItemDrop.ItemData.SharedData s, bool isFeast)
     {
         var tags = entry.Tags;
@@ -141,7 +141,7 @@ internal static class Tags
             Piece.PieceCategory.BuildingStonecutter => "stone",
             Piece.PieceCategory.Furniture => "furniture",
             Piece.PieceCategory.Feasts or Piece.PieceCategory.Food or Piece.PieceCategory.Meads => "feasts",
-            // Misc stavby (portál, vozík…) jen pod #pieces, "misc" je hlavní kategorie předmětů.
+            // Misc pieces (portal, cart…) only under #pieces, "misc" is a main item category.
             _ => null,
         };
         if (isSeed) sub = "seeds";
