@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace LevelEasily;
 
-[BepInPlugin(Guid, "LevelEasily", "0.2.0")]
+[BepInPlugin(Guid, "LevelEasily", "0.2.1")]
 [BepInDependency(Jotunn.Main.ModGuid)]
 public sealed class Plugin : BaseUnityPlugin
 {

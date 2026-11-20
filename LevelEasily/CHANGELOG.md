@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1
+- Screenshots in the README, website link points to the mod's folder on GitHub.
+
 ## 0.2.0
 - First public release.
 - Level area on the hoe: one click levels a grid-snapped rectangle (arrow keys for size, L to lock to a building piece,

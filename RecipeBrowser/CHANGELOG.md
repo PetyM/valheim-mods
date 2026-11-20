@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+- Fix: R, U, A and Backspace no longer act as shortcuts while typing in another text field (chat, console,
+  crafting filter of other mods such as MyLittleUI); the letter only goes into the field.
+- Screenshots in the README, website link points to the mod's folder on GitHub.
+
 ## 1.0.0
 - First public release.
 - Results and bookmarks panels next to the inventory, recipe window with Recipes, Sources, Upgrades and Usages tabs.

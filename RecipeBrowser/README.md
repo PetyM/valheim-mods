@@ -4,6 +4,8 @@ JEI-style recipe browser for Valheim. While the inventory is open, two panels si
 results with search on the left, bookmarks on the right. Slots are the same size as inventory slots. The recipe
 window opens above the panels.
 
+![Results and bookmarks panels next to the inventory](https://raw.githubusercontent.com/PetyM/valheim-mods/master/RecipeBrowser/screenshots/overview.jpg)
+
 ## Requirements
 - BepInEx and Jotunn.
 - Client only: nothing changes in the world, the server does not need the mod.
@@ -19,6 +21,8 @@ Space-separated tokens, all of them must match:
 - Below the field are chips (Weapons, Armor, Food, Potions, Materials, Ammo, Tools, Pieces, Trophies, Fish, Misc,
   Craftable, Bookmarked). Categories behave like tabs: click replaces the previous category, Ctrl+click adds it
   as "or" (`#weapons|#armor`). Craftable and Bookmarked are added to the filter. Right click excludes the tag (`-#tag`).
+
+![Search suggestions](https://raw.githubusercontent.com/PetyM/valheim-mods/master/RecipeBrowser/screenshots/search.jpg)
 
 ## Tags
 - categories `#materials #food #potions #weapons #armor #ammo #tools #pieces #trophies #fish #misc`;
@@ -52,6 +56,8 @@ trader with price and condition, fishing), "Upgrades" and "Usages". Empty tabs a
 by station or action, wrapping onto multiple rows. A card shows the station and level, biome, ingredients with
 amounts (green = you have enough, red = missing, in brackets how many you have) and notes. When you stand at the right
 station, clicking a card selects the recipe in the vanilla crafting or upgrade list.
+
+![Usages of Wood grouped by station](https://raw.githubusercontent.com/PetyM/valheim-mods/master/RecipeBrowser/screenshots/usages.jpg) ![Sources of Wood](https://raw.githubusercontent.com/PetyM/valheim-mods/master/RecipeBrowser/screenshots/sources.jpg)
 
 ## Layout
 Panels and the recipe window can be dragged by their header and resized by the orange corner. The grid snaps to whole

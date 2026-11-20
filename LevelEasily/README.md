@@ -4,6 +4,9 @@ Client-only BepInEx mod for Valheim (requires Jotunn). Adds **Level area** to th
 snapped to the metre grid, for the same price as doing it by hand. Other players and the server do not need the mod.
 Detailed rules: [SPEC.md](https://github.com/PetyM/valheim-mods/blob/master/LevelEasily/SPEC.md).
 
+![Preview: red points are cut, blue points are filled](https://raw.githubusercontent.com/PetyM/valheim-mods/master/LevelEasily/screenshots/before.jpg)
+![The same slope after one click](https://raw.githubusercontent.com/PetyM/valheim-mods/master/LevelEasily/screenshots/after.jpg)
+
 ## Usage
 - The preview shows a rectangle snapped to the metre grid (heightmap vertices) with points coloured by what happens to them:
   green = level, red = cut, blue = fill, purple = out of reach (±8 m from the original terrain),

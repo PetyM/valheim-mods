@@ -22,6 +22,9 @@ Tým `PetyM`, zdrojáky na GitHubu `PetyM/valheim-mods`, licence MIT.
 3. Nahrát na https://thunderstore.io/package/create/ (komunita Valheim). README módu je stránka pro hráče,
    relativní odkazy v něm nefungují, používej plné URL na GitHub.
 
+Screenshoty: `<Mód>/screenshots/*.jpg`, v README plné URL na raw.githubusercontent.com (Thunderstore relativní
+cesty nezobrazí). Snímek z běžící hry: `tools/screenshot.py <cil.png>` (portál GNOME, celá plocha, oříznout).
+
 Ikony: `<Mód>/Thunderstore/icon.svg` je zdroj, `icon.png` (256×256) se renderuje `rsvg-convert -w 256 -h 256`.
 
 ## Vazby mimo repo

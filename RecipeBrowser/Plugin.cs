@@ -5,11 +5,14 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace RecipeBrowser;
 
-[BepInPlugin("PetyM.RecipeBrowser", "RecipeBrowser", "1.0.0")]
+[BepInPlugin("PetyM.RecipeBrowser", "RecipeBrowser", "1.0.1")]
 [BepInDependency(Jotunn.Main.ModGuid)]
 public sealed class Plugin : BaseUnityPlugin
 {
@@ -89,7 +92,12 @@ public sealed class Plugin : BaseUnityPlugin
             browser.Close();
         }
         recipeOpen = browser.IsRecipeOpen;
-        if (browser.IsTyping) return;
+        if (browser.IsTyping || OtherTextInputFocused())
+        {
+            // The keys are being typed into a text field (ours, chat, console, another mod's filter), not used as shortcuts.
+            hoveredEntry = null;
+            return;
+        }
 
         if (backKey.Value.IsDown()) browser.Back();
         if (collapseKey.Value.IsDown()) browser.ToggleCollapsed();
@@ -136,6 +144,19 @@ public sealed class Plugin : BaseUnityPlugin
             if (pair.InterfaceElement && pair.Recipe && pair.Recipe.m_item && IsPointerOver((RectTransform)pair.InterfaceElement.transform))
                 return catalog.Find(pair.Recipe.m_item.name);
         return null;
+    }
+
+    private static bool OtherTextInputFocused()
+    {
+        var selected = EventSystem.current ? EventSystem.current.currentSelectedGameObject : null;
+        if (selected)
+        {
+            var tmp = selected.GetComponent<TMP_InputField>();
+            if (tmp && tmp.isFocused) return true;
+            var legacy = selected.GetComponent<InputField>();
+            if (legacy && legacy.isFocused) return true;
+        }
+        return (Chat.instance && Chat.instance.HasFocus()) || Console.IsVisible() || TextInput.IsVisible();
     }
 
     private static bool IsPointerOver(RectTransform rect) => rect.rect.Contains(rect.InverseTransformPoint(ZInput.pointerPosition));
