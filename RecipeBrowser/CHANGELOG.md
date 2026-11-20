@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.2
+- Sources tab sorted by biome progression (Meadows first, unknown last).
+
 ## 1.0.1
 - Fix: R, U, A and Backspace no longer act as shortcuts while typing in another text field (chat, console,
   crafting filter of other mods such as MyLittleUI); the letter only goes into the field.

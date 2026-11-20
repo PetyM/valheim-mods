@@ -12,7 +12,7 @@ using UnityEngine.UI;
 
 namespace RecipeBrowser;
 
-[BepInPlugin("PetyM.RecipeBrowser", "RecipeBrowser", "1.0.1")]
+[BepInPlugin("PetyM.RecipeBrowser", "RecipeBrowser", "1.0.2")]
 [BepInDependency(Jotunn.Main.ModGuid)]
 public sealed class Plugin : BaseUnityPlugin
 {

@@ -171,6 +171,8 @@ internal sealed class Catalog
                 (extensions.TryGetValue(s, out var list) ? list : extensions[s] = new List<Entry>()).Add(e);
         Progression.Assign(entries.Values, cards, extensions, Progression.Overrides());
         foreach (var entry in entries.Values) entry.Tags.Add(Progression.Tag(entry.Biome));
+        // Sources in biome progression order (Meadows first, unknown last); the sort is stable, so within a biome the original order stays.
+        foreach (var key in sources.Keys.ToList()) sources[key] = sources[key].OrderBy(c => c.Biome ?? int.MaxValue).ToList();
 
         All = entries.Values.OrderBy(e => e.Mod != Vanilla).ThenBy(e => e.Mod).ThenBy(e => e.Name).ToList();
         var counts = new Dictionary<string, int>();

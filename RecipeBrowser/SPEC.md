@@ -37,7 +37,8 @@ Rules in order. The result for each entry is logged (debug), so it is possible t
 
 ### 1.4 New "Sources" view
 Next to recipes, cards without crafting: creature drop (with chance), pickup, mining (with the required pickaxe tier), tree,
-chest in a location, trader (price, condition). The card shows the biome. The data come for free from the seed phase in 1.3.
+chest in a location, trader (price, condition). The card shows the biome; cards are sorted by biome progression
+(Meadows first, unknown last). The data come for free from the seed phase in 1.3.
 
 ## 2. Search and tags (replaces category tabs)
 - Words: all must match the name or prefab, as before.
