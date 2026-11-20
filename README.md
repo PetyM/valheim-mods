@@ -13,7 +13,7 @@ s hledáním vlevo, záložky vpravo. Políčka jsou stejně velká jako v inven
 - `#tag` podle tagu, dvojtečka znamená „a zároveň“ (`#weapons:plains`, `#food:stamina`). Stačí jednoznačný začátek (`#swo`).
 - `-` před čímkoli vyřadí (`-@Therzie`, `-#pieces`, `-kůže`), `^název` najde, k čemu je předmět ingrediencí (`^Wood`),
   `|` znamená nebo (`#swords|#axes`).
-- Při psaní `#`, `@` a `^` se pod polem nabízí doplnění s českým popisem a počtem výsledků, **Tab** vezme první.
+- Při psaní `#`, `@` a `^` se pod polem nabízí doplnění s českým popisem a počtem výsledků, **Tab** vezme první. Tlačítko „×“ vedle pole hledání vymaže.
 - Pod polem jsou čipy (Zbraně, Zbroj, Jídlo, Lektvary, Materiály, Munice, Nástroje, Stavby, Trofeje, Ryby, Ostatní,
   Vyrobitelné, Záložky). Kategorie se chovají jako záložky: klik nahradí předchozí kategorii, Ctrl+klik ji přidá jako
   „nebo“ (`#weapons|#armor`). Vyrobitelné a Záložky se přidávají k filtru. Pravý klik tag vyřadí (`-#tag`).
@@ -33,7 +33,8 @@ Biom se počítá z vegetace, spawnů, dropů a receptů (nejlevnější cesta).
 **Klávesy** nad předmětem kdekoli (panel, inventář, truhla, seznam craftingu): **R** jak vyrobit, **U** k čemu je,
 **A** záložka (v záložkách ji odebere). Dokud kurzor stojí nad předmětem, nehýbou postavou. V panelu a v receptech
 levé tlačítko = jak vyrobit, pravé = k čemu je. **Backspace** zpět, **Esc** zavře nejdřív okno receptu.
-**Y** sbalí panely do malé lišty a zase je rozbalí (jen při otevřeném inventáři, stejně jako tlačítko „–“ v hlavičce).
+Tlačítko „–“ v hlavičce sbalí jen svůj panel (výsledky nebo záložky) do malé lišty, „Rozbalit“ ho vrátí.
+**Y** sbalí oba panely, když je některý rozbalený, jinak oba rozbalí (jen při otevřeném inventáři).
 R a U fungují i se sbalenými panely.
 
 **Okno receptu:** záložky „Jak vyrobit“, „Jak získat“ (drop z tvora se šancí, sběr, těžba s úrovní krumpáče, kácení,
@@ -49,7 +50,7 @@ Záložky jde přetažením přeřadit.
 
 **Nastavení** `BepInEx/config/michal.recipebrowser.cfg` (i v Configuration Manageru):
 - `Klávesy`: Jak vyrobit, K čemu je, Záložka, Zpět, Schovat.
-- `Zobrazení`: Řádky (výška výchozího pruhu), Řazení, Sbaleno, Oddělovač biomu (při řazení podle postupu řádek
+- `Zobrazení`: Řádky (výška výchozího pruhu), Řazení, Sbalit výsledky, Sbalit záložky, Oddělovač biomu (při řazení podle postupu řádek
   s názvem biomu před každou skupinou, výchozí vypnuto). `Rozložení`: uložené pozice a Obnovit rozložení.
 - `Katalog`: Skrýt nedostupné (předměty bez zdroje i použití, výchozí zapnuto), Ignorovat (prefaby: přesné jméno,
   `*přípona`, `předpona*`), Logovat filtr (do logu každá skrytá položka s důvodem).

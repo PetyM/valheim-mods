@@ -30,6 +30,8 @@ internal sealed class SearchBar
     private readonly List<(GameObject row, Image background, Text label)> rows = new();
     private IReadOnlyList<Suggestion> suggestions = new List<Suggestion>();
     private bool caretToEnd;
+    private readonly Button clear;
+    private const float ClearWidth = 32;
 
     public string Text => input.text;
     public SortMode Sort => UiConfig.Sort.Value;
@@ -45,6 +47,7 @@ internal sealed class SearchBar
         input = go.GetComponent<InputField>();
         input.text = lastText;
         input.onValueChanged.AddListener(_ => OnTextChanged());
+        clear = Ui.Button(panel.Header, "×", 0, 0, ClearWidth, ItemPanel.RowHeight, Clear);
         sort = Ui.Button(panel.Header, SortLabels[Sort], 0, 0, SortWidth, ItemPanel.RowHeight, CycleSort);
         sort.GetComponentInChildren<Text>().fontSize = 14;
         foreach (var (tag, label) in Tags.Chips)
@@ -67,8 +70,10 @@ internal sealed class SearchBar
     /// <summary>Rozvrhne hlavičku pro vnitřní šířku panelu, vrátí výšku hlavičky.</summary>
     public float Layout(float inner)
     {
-        float searchWidth = Mathf.Max(120, panel.HeaderWidth - SortWidth - 6);
+        float searchWidth = Mathf.Max(120, panel.HeaderWidth - SortWidth - ClearWidth - 8);
         Ui.Place(input.gameObject, panel.Header, 0, 0, searchWidth, ItemPanel.RowHeight);
+        Ui.Place(clear.gameObject, panel.Header, searchWidth + 2, 0, ClearWidth, ItemPanel.RowHeight);
+        searchWidth += ClearWidth + 2;
         Ui.Place(sort.gameObject, panel.Header, searchWidth + 6, 0, SortWidth, ItemPanel.RowHeight);
         float x = 0, y = ItemPanel.RowHeight + 6;
         foreach (var (button, _, width) in chips)
@@ -85,7 +90,7 @@ internal sealed class SearchBar
     {
         if (caretToEnd && input.isFocused)
         {
-            input.caretPosition = input.text.Length;
+            input.MoveTextEnd(false);
             caretToEnd = false;
         }
         if (input.isFocused && suggestions.Count > 0 && Input.GetKeyDown(KeyCode.Tab)) Complete(suggestions[0]);
@@ -106,6 +111,12 @@ internal sealed class SearchBar
         UpdateChips();
         UpdateSuggestions();
         changed();
+    }
+
+    private void Clear()
+    {
+        input.text = "";
+        Defocus();
     }
 
     private void CycleSort()
@@ -204,7 +215,8 @@ internal sealed class SearchBar
     private void Complete(Suggestion suggestion)
     {
         input.text = Replace(input.text, suggestion.Completion) + " ";
-        input.ActivateInputField();
+        if (input.isFocused) input.MoveTextEnd(false);
+        else input.ActivateInputField();
         caretToEnd = true;
     }
 

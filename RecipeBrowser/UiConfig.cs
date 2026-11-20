@@ -11,7 +11,8 @@ internal static class UiConfig
     private const string LayoutSection = "Rozložení";
 
     public static ConfigEntry<SortMode> Sort { get; private set; }
-    public static ConfigEntry<bool> Collapsed { get; private set; }
+    public static ConfigEntry<bool> ResultsCollapsed { get; private set; }
+    public static ConfigEntry<bool> BookmarksCollapsed { get; private set; }
     public static ConfigEntry<bool> BiomeSeparators { get; private set; }
     public static ConfigEntry<bool> ResetLayout { get; private set; }
     public static ConfigEntry<string> ResultsRect { get; private set; }
@@ -22,7 +23,8 @@ internal static class UiConfig
     {
         Sort = config.Bind("Zobrazení", "Řazení", SortMode.Progression, "Řazení výsledků: Progression = postup (biom, kategorie, stanice), Name = název, Mod = mód.");
         BiomeSeparators = config.Bind("Zobrazení", "Oddělovač biomu", false, "Při řazení podle postupu vloží do mřížky řádek s názvem biomu před každou skupinu.");
-        Collapsed = config.Bind("Zobrazení", "Sbaleno", false, "Panely jsou sbalené do malé lišty.");
+        ResultsCollapsed = config.Bind("Zobrazení", "Sbalit výsledky", false, "Panel výsledků je sbalený do malé lišty.");
+        BookmarksCollapsed = config.Bind("Zobrazení", "Sbalit záložky", false, "Panel záložek je sbalený do malé lišty.");
         ResetLayout = config.Bind(LayoutSection, "Obnovit rozložení", false, "Zapnutím vrátíš panely na výchozí místo a velikost (pak se samo vypne).");
         ResultsRect = config.Bind(LayoutSection, "Výsledky", "", "Pozice a velikost panelu výsledků (x;y;šířka;výška jako podíl obrazovky). Prázdné = výchozí.");
         BookmarksRect = config.Bind(LayoutSection, "Záložky", "", "Pozice a velikost panelu záložek. Prázdné = výchozí.");

@@ -1,3 +1,4 @@
+using BepInEx.Configuration;
 using System;
 using System.Linq;
 using Jotunn.Managers;
@@ -22,7 +23,7 @@ internal sealed class Browser
     private readonly ItemPanel results, bookmarked;
     private readonly SearchBar searchBar;
     private readonly RecipeWindow window;
-    private readonly GameObject bar;
+    private readonly GameObject resultsBar, bookmarksBar;
     private const float StockCheckInterval = 0.5f;
     private bool visible, typing, liveQuery;
     private int stockSignature;
@@ -32,7 +33,6 @@ internal sealed class Browser
     public bool IsTyping => typing;
     public bool IsRecipeOpen => window.IsOpen;
     public Layout Layout { get; }
-    private static bool Collapsed => UiConfig.Collapsed.Value;
 
     public Browser(Catalog catalog, Bookmarks bookmarks, RectTransform root, Layout layout)
     {
@@ -43,12 +43,12 @@ internal sealed class Browser
         Layout = layout;
         Query.IsBookmarked = e => bookmarks.Contains(e.Key);
 
-        results = new ItemPanel(root, layout, false, Open, ToggleCollapsed);
+        results = new ItemPanel(root, layout, false, Open, () => Toggle(UiConfig.ResultsCollapsed));
         searchBar = new SearchBar(results, catalog, Filter);
         results.LayoutHeader = searchBar.Layout;
         results.Frame.Saved = r => UiConfig.Save(UiConfig.ResultsRect, r, root.rect);
 
-        bookmarked = new ItemPanel(root, layout, true, Open, ToggleCollapsed, Reorder);
+        bookmarked = new ItemPanel(root, layout, true, Open, () => Toggle(UiConfig.BookmarksCollapsed), Reorder);
         var title = Ui.Label(bookmarked.Header, "Záložky", 0, 0, 100, ItemPanel.RowHeight, 18, colour: Ui.Orange);
         var reset = Ui.Button(bookmarked.Header, "Obnovit rozložení", 0, 0, ResetWidth, ItemPanel.RowHeight, ResetLayout);
         reset.GetComponentInChildren<Text>().fontSize = 13;
@@ -63,18 +63,19 @@ internal sealed class Browser
         bookmarked.Frame.Saved = r => UiConfig.Save(UiConfig.BookmarksRect, r, root.rect);
 
         window = new RecipeWindow(root, catalog, layout.Window);
-        bar = CreateBar();
+        resultsBar = CreateBar("Recepty", () => Toggle(UiConfig.ResultsCollapsed));
+        bookmarksBar = CreateBar("Záložky", () => Toggle(UiConfig.BookmarksCollapsed));
         PlacePanels();
         ApplyCollapsed();
         Filter();
         RenderBookmarks();
     }
 
-    private GameObject CreateBar()
+    private GameObject CreateBar(string title, Action expand)
     {
         var go = GUIManager.Instance.CreateWoodpanel(root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, BarWidth, BarHeight, false);
-        Ui.Label(go.transform, "Recepty", 12, 10, 100, 32, 18, colour: Ui.Orange);
-        Ui.Button(go.transform, "Rozbalit", BarWidth - 122, 10, 110, 32, ToggleCollapsed);
+        Ui.Label(go.transform, title, 12, 10, 100, 32, 18, colour: Ui.Orange);
+        Ui.Button(go.transform, "Rozbalit", BarWidth - 122, 10, 110, 32, expand);
         go.SetActive(false);
         return go;
     }
@@ -84,7 +85,13 @@ internal sealed class Browser
         var screen = root.rect;
         results.Frame.Place(UiConfig.Load(UiConfig.ResultsRect, screen, Layout.Results));
         bookmarked.Frame.Place(UiConfig.Load(UiConfig.BookmarksRect, screen, Layout.Bookmarks));
-        Ui.PlaceLocal((RectTransform)bar.transform, root, results.Frame.Rect.min, Vector2.zero);
+        PlaceBars();
+    }
+
+    private void PlaceBars()
+    {
+        Ui.PlaceLocal((RectTransform)resultsBar.transform, root, results.Frame.Rect.min, Vector2.zero);
+        Ui.PlaceLocal((RectTransform)bookmarksBar.transform, root, bookmarked.Frame.Rect.min, Vector2.zero);
     }
 
     public void ResetLayout()
@@ -122,20 +129,35 @@ internal sealed class Browser
 
     private void ApplyCollapsed()
     {
-        results.Root.SetActive(visible && !Collapsed);
-        bookmarked.Root.SetActive(visible && !Collapsed);
-        bar.SetActive(visible && Collapsed);
+        bool resultsCollapsed = UiConfig.ResultsCollapsed.Value, bookmarksCollapsed = UiConfig.BookmarksCollapsed.Value;
+        results.Root.SetActive(visible && !resultsCollapsed);
+        bookmarked.Root.SetActive(visible && !bookmarksCollapsed);
+        resultsBar.SetActive(visible && resultsCollapsed);
+        bookmarksBar.SetActive(visible && bookmarksCollapsed);
     }
 
+    /// <summary>Klávesa: když je něco rozbalené, sbalí oba panely, jinak oba rozbalí.</summary>
     public void ToggleCollapsed()
     {
-        UiConfig.Collapsed.Value = !Collapsed;
-        if (Collapsed)
+        bool collapse = !UiConfig.ResultsCollapsed.Value || !UiConfig.BookmarksCollapsed.Value;
+        UiConfig.ResultsCollapsed.Value = UiConfig.BookmarksCollapsed.Value = collapse;
+        Collapsed();
+    }
+
+    private void Toggle(ConfigEntry<bool> entry)
+    {
+        entry.Value = !entry.Value;
+        Collapsed();
+    }
+
+    private void Collapsed()
+    {
+        if (UiConfig.ResultsCollapsed.Value)
         {
             searchBar.Defocus();
             SetTyping(false);
         }
-        Ui.PlaceLocal((RectTransform)bar.transform, root, results.Frame.Rect.min, Vector2.zero);
+        PlaceBars();
         ApplyCollapsed();
     }
 
@@ -146,13 +168,14 @@ internal sealed class Browser
         UnityEngine.Object.Destroy(results.Root);
         UnityEngine.Object.Destroy(bookmarked.Root);
         UnityEngine.Object.Destroy(window.Root);
-        UnityEngine.Object.Destroy(bar);
+        UnityEngine.Object.Destroy(resultsBar);
+        UnityEngine.Object.Destroy(bookmarksBar);
     }
 
     public void Tick()
     {
         searchBar.Tick();
-        SetTyping(!Collapsed && searchBar.IsActive);
+        SetTyping(!UiConfig.ResultsCollapsed.Value && searchBar.IsActive);
         tooltip.Update(Slot.Hovered ? Slot.Hovered.Entry : null);
         if (Time.time - stockCheckedAt < StockCheckInterval) return;
         stockCheckedAt = Time.time;
