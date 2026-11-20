@@ -21,6 +21,7 @@ internal sealed class VanillaRates
 
     private readonly ManualLogSource log;
     private readonly Dictionary<ItemDrop.ItemData.SharedData, float> digVolumes = new();
+    private readonly Dictionary<ItemDrop.ItemData.SharedData, DigYield> digYields = new();
 
     private VanillaRates(PieceTable hoe, ManualLogSource log)
     {
@@ -65,6 +66,25 @@ internal sealed class VanillaRates
         }
         digVolumes[shared] = volume;
         return volume;
+    }
+
+    /// <summary>Co vanilla úder do terénu vyhodí (<c>TerrainOp.OnPlaced</c>): předmět a průměrný počet na úder.</summary>
+    public DigYield YieldPerHit(ItemDrop.ItemData tool)
+    {
+        var shared = tool.m_shared;
+        if (digYields.TryGetValue(shared, out var yield)) return yield;
+        var op = shared.m_spawnOnHitTerrain ? shared.m_spawnOnHitTerrain.GetComponentInChildren<TerrainOp>(true) : null;
+        var drop = op && op.m_spawnOnPlaced ? op.m_spawnOnPlaced.GetComponent<ItemDrop>() : null;
+        // Random.value <= šance, pak Random.Range(1, max + 1) kusů.
+        yield = drop
+            ? new DigYield(drop, Mathf.Clamp01(op.m_chanceToSpawn) * (1 + Mathf.Max(1, op.m_maxSpawned)) / 2f, op.m_spawnAtMaxLevelDepth)
+            : new DigYield(null, 0, false);
+        log.LogInfo(drop
+            ? $"{shared.m_name}: úder vyhodí {drop.name} se šancí {op.m_chanceToSpawn}, 1–{op.m_maxSpawned} ks " +
+              $"(průměr {yield.PerHit:0.00}), i v max. hloubce {op.m_spawnAtMaxLevelDepth}"
+            : $"{shared.m_name}: úder do terénu nic nevyhodí");
+        digYields[shared] = yield;
+        return yield;
     }
 
     /// <summary>
@@ -112,5 +132,19 @@ internal sealed class VanillaRates
             sum += weight(distance);
         }
         return sum;
+    }
+}
+
+internal readonly struct DigYield
+{
+    public readonly ItemDrop Item;
+    public readonly float PerHit;
+    public readonly bool AtMaxDepth;
+
+    public DigYield(ItemDrop item, float perHit, bool atMaxDepth)
+    {
+        Item = item;
+        PerHit = perHit;
+        AtMaxDepth = atMaxDepth;
     }
 }

@@ -8,11 +8,13 @@ internal enum Shortage { None, Stamina, HoeWear, PickaxeWear, Stone }
 
 internal readonly struct Cost
 {
-    public readonly int Vertices, HoeSwings, RaiseSwings, PickHits, Stone;
+    public readonly int Vertices, HoeSwings, RaiseSwings, PickHits, Stone, Returned;
     public readonly float Stamina, HoeWear, PickWear, Seconds;
 
-    public Cost(int vertices, int hoeSwings, int raiseSwings, int pickHits, int stone, float stamina, float hoeWear, float pickWear, float seconds)
+    public Cost(int vertices, int hoeSwings, int raiseSwings, int pickHits, int stone, float stamina, float hoeWear, float pickWear,
+        float seconds, int returned)
     {
+        Returned = returned;
         Vertices = vertices;
         HoeSwings = hoeSwings;
         RaiseSwings = raiseSwings;
@@ -33,6 +35,7 @@ internal sealed class Budget
     public ItemDrop.ItemData Hoe;
     public ItemDrop.ItemData Pickaxe;
     public float HoeStamina, HoeWear, PickStamina, PickWear, PickVolume, PlaceDelay, PickSeconds;
+    public DigYield Yield;
     public float Stamina, HoeDurability, PickDurability;
     public int Stone;
 
@@ -59,6 +62,7 @@ internal sealed class Budget
         {
             var pick = budget.Pickaxe;
             budget.PickVolume = rates.DigVolumePerHit(pick);
+            budget.Yield = rates.YieldPerHit(pick);
             budget.PickStamina = AttackStamina(player, pick) * (1 - staminaDiscount);
             budget.PickWear = pick.m_shared.m_useDurability ? pick.m_shared.m_useDurabilityDrain * Game.m_durabilityRate : 0;
             budget.PickDurability = pick.m_shared.m_useDurability ? pick.m_durability : float.PositiveInfinity;
@@ -83,7 +87,7 @@ internal sealed class Budget
         return stamina - stamina * 0.33f * player.GetSkillFactor(tool.m_shared.m_skillType);
     }
 
-    public Cost CostOf(int vertices, float stoneVolume, float pickVolume, VanillaRates rates)
+    public Cost CostOf(int vertices, float stoneVolume, float pickVolume, float yieldVolume, VanillaRates rates)
     {
         int raiseSwings = stoneVolume > AreaPlan.ChangeThreshold ? Mathf.CeilToInt(stoneVolume / rates.RaiseVolumePerSwing) : 0;
         int hoeSwings = vertices > 0 ? Mathf.CeilToInt(vertices / (float)rates.VerticesPerSwing) : 0;
@@ -91,7 +95,15 @@ internal sealed class Budget
         int swings = hoeSwings + raiseSwings;
         return new Cost(vertices, hoeSwings, raiseSwings, pickHits, raiseSwings * rates.StonePerRaiseSwing,
             swings * HoeStamina + pickHits * PickStamina, swings * HoeWear, pickHits * PickWear,
-            swings * PlaceDelay + pickHits * PickSeconds);
+            swings * PlaceDelay + pickHits * PickSeconds, Returned(pickVolume, yieldVolume));
+    }
+
+    /// <summary>Průměrný vanilla výnos úderů, zaokrouhlený dolů, aby mód nedal víc než ruční kopání.</summary>
+    private int Returned(float pickVolume, float yieldVolume)
+    {
+        if (!Yield.Item || PickVolume <= 0) return 0;
+        float hits = (Yield.AtMaxDepth ? pickVolume : yieldVolume) / PickVolume;
+        return Mathf.FloorToInt(hits * Yield.PerHit);
     }
 
     private Shortage Check(Cost cost)
@@ -115,18 +127,19 @@ internal sealed class Budget
         }
         wanted.Sort((a, b) => Flat(a.Point - player).CompareTo(Flat(b.Point - player)));
 
-        var cost = CostOf(0, 0, 0, rates);
+        var cost = CostOf(0, 0, 0, 0, rates);
         int count = 0;
-        float stone = 0, pick = 0;
+        float stone = 0, pick = 0, yielded = 0;
         foreach (var v in wanted)
         {
-            var next = CostOf(count + 1, stone + v.StoneVolume, pick + v.PickVolume, rates);
+            var next = CostOf(count + 1, stone + v.StoneVolume, pick + v.PickVolume, yielded + v.YieldVolume, rates);
             var shortage = Check(next);
             if (shortage != Shortage.None) return (cost, shortage);
             v.Selected = true;
             count++;
             stone += v.StoneVolume;
             pick += v.PickVolume;
+            yielded += v.YieldVolume;
             cost = next;
         }
         return (cost, Shortage.None);

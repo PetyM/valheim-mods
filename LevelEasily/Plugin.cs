@@ -221,6 +221,8 @@ public sealed class Plugin : BaseUnityPlugin
         else
         {
             text.Append($"motyka {cost.AllSwings}× · krumpáč {cost.PickHits}× · kámen {cost.Stone} · výdrž {cost.Stamina:0} · {cost.Seconds:0.#} s");
+            if (cost.Returned > 0)
+                text.Append($" · vykopeš {cost.Returned}× {Localization.instance.Localize(budget.Yield.Item.m_itemData.m_shared.m_name)}");
             text.AppendLine();
             text.Append($"opotřebení: motyka {cost.HoeWear:0.#}");
             if (cost.PickHits > 0) text.Append($", {Localization.instance.Localize(budget.Pickaxe.m_shared.m_name)} {cost.PickWear:0.#}");
@@ -341,6 +343,23 @@ public sealed class Plugin : BaseUnityPlugin
             paidFrom.Pickaxe.m_durability = Mathf.Max(0, paidFrom.Pickaxe.m_durability - paid.PickWear);
         if (paid.Stone > 0 && !player.m_noPlacementCost)
             player.GetInventory().RemoveItem(rates.Stone.m_itemData.m_shared.m_name, paid.Stone);
+        if (paid.Returned > 0) GiveDugItems(player, paidFrom.Yield.Item, paid.Returned);
+    }
+
+    /// <summary>Vykopaný materiál rovnou do inventáře, co se nevejde, vypadne k nohám (vanilla ho hází na zem).</summary>
+    private static void GiveDugItems(Player player, ItemDrop item, int amount)
+    {
+        var inventory = player.GetInventory();
+        int fits = 0;
+        while (fits < amount && inventory.CanAddItem(item.gameObject, fits + 1)) fits++;
+        if (fits > 0) inventory.AddItem(item.gameObject, fits);
+        int maxStack = Mathf.Max(1, item.m_itemData.m_shared.m_maxStackSize);
+        for (int left = amount - fits; left > 0; left -= maxStack)
+        {
+            var dropped = Instantiate(item.gameObject, player.transform.position + Vector3.up, Quaternion.identity);
+            dropped.GetComponent<ItemDrop>().m_itemData.m_stack = Mathf.Min(left, maxStack);
+        }
+        player.Message(MessageHud.MessageType.TopLeft, $"+{amount} {Localization.instance.Localize(item.m_itemData.m_shared.m_name)}");
     }
 
     private IEnumerator ResetGrassLater(AreaPlan levelled)

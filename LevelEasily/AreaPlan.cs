@@ -13,6 +13,8 @@ internal sealed class VertexPlan
     public bool Unreachable;
     public VertexState State;
     public float PickVolume;
+    /// <summary>Objem krumpáče nad maximální hloubkou: jen tam vanilla kopání může dát kámen.</summary>
+    public float YieldVolume;
     public float StoneVolume;
     public bool Selected;
 
@@ -29,6 +31,7 @@ internal sealed class AreaPlan
     private const float PieceMargin = 0.45f;
     private const float PieceSlack = 0.5f;
     public const int VanillaLevelLimit = 8;
+    private const float MaxDepthYield = 7.95f;
     private static readonly Collider[] Overlaps = new Collider[32];
 
     public RectInt Area { get; }
@@ -78,6 +81,8 @@ internal sealed class AreaPlan
                 Unreachable = Mathf.Abs(goal - target) > ChangeThreshold,
             };
             Classify(vertex, smoothDelta, freeFill, hasPickaxe, ghost, pieceMask);
+            // Heightmap.AtMaxWorldLevelDepth: v hloubce 7,95 m pod základem vanilla kopání nic nedá.
+            vertex.YieldVolume = goal > baseHeight - MaxDepthYield ? vertex.PickVolume : 0;
             plan.Vertices.Add(vertex);
             plan.byGrid[grid] = vertex;
         }
