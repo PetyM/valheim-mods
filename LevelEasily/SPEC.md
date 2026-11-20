@@ -32,6 +32,8 @@ Pro vrchol se změnou Δ (proti dosažitelnému cíli) a dosavadní smooth delto
   táhne k terénu pod hráčem). Zbytek dosypání = objem pro Raise ground: švihů = objem ÷ objem švihu `raise_v2`,
   kámen = švihy × cena `raise_v2`. Každý švih Raise ground stojí výdrž a opotřebení motyky.
 - **Čas**: po kliknutí je motyka zablokovaná na (švihy motyky × `m_placeDelay`) + (údery krumpáčem × `Čas úderu krumpáčem`).
+- **Sleva na výdrž** (config `Cena / Sleva na výdrž`, výchozí 30 %): švihy i údery stojí o tolik méně výdrže.
+  Rozhodnutí uživatele po zkoušce ve hře (2026-11-20). Opotřebení, kámen ani čas sleva nemění.
 - `m_noPlacementCost` (debug) ruší jen kámen, jako vanilla.
 
 ## Částečné srovnání

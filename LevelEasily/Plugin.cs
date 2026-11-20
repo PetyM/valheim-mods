@@ -35,7 +35,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static Plugin instance;
     private ConfigEntry<KeyboardShortcut> lockKey, raiseKey, lowerKey, widerKey, narrowerKey, longerKey, shorterKey;
-    private ConfigEntry<float> step, pickaxeSeconds;
+    private ConfigEntry<float> step, pickaxeSeconds, staminaDiscount;
     private ConfigEntry<int> maxSize;
     private ConfigEntry<bool> preserveSoil;
     private int aimMask, pieceMask;
@@ -71,6 +71,9 @@ public sealed class Plugin : BaseUnityPlugin
             "Obdělanou a dlážděnou půdu srovná, ale nepřetře hlínou.");
         pickaxeSeconds = Config.Bind("Cena", "Čas úderu krumpáčem", 1f,
             new ConfigDescription("Na kolik sekund zablokuje motyku jeden započítaný úder krumpáčem.", new AcceptableValueRange<float>(0f, 5f)));
+        staminaDiscount = Config.Bind("Cena", "Sleva na výdrž", 0.3f,
+            new ConfigDescription("O kolik méně výdrže stojí švihy motyky a údery krumpáčem proti ruční práci (0,3 = o 30 %).",
+                new AcceptableValueRange<float>(0f, 1f)));
         aimMask = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "static_solid", "terrain");
         pieceMask = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "static_solid");
         PrefabManager.OnVanillaPrefabsAvailable += AddLevelAreaPiece;
@@ -108,7 +111,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
         if (AcceptsInput()) HandleKeys(player);
 
-        budget = Budget.Of(player, rates, pickaxeSeconds.Value);
+        budget = Budget.Of(player, rates, pickaxeSeconds.Value, staminaDiscount.Value);
         var area = SnapArea(ghost.transform.position);
         float ground = GroundUnder(player), target = lockedHeight ?? ground;
         bool freeFill = target <= ground + AreaPlan.ChangeThreshold, hasPickaxe = budget.Pickaxe != null;
@@ -301,7 +304,7 @@ public sealed class Plugin : BaseUnityPlugin
             if (!TerrainWriter.Ready(claimed)) { Refuse(player, "Terén tu právě upravuje jiný hráč"); yield break; }
 
             // Za čekání se mohl změnit terén, zdroje i hráči kolem: spočítat a zkontrolovat znovu.
-            var fresh = Budget.Of(player, rates, pickaxeSeconds.Value);
+            var fresh = Budget.Of(player, rates, pickaxeSeconds.Value, staminaDiscount.Value);
             var written = AreaPlan.Measure(area, target, freeFill, fresh.Pickaxe != null, player.m_placementGhost, pieceMask);
             var (paid, lack) = fresh.Select(written, player.transform.position, rates, v => TerrainWriter.Covers(claimed, v));
             if (paid.Vertices == 0) { Refuse(player, lack != Shortage.None ? Capitalise(ShortageText(lack)) : "Plocha už je rovná"); yield break; }

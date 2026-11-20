@@ -36,13 +36,13 @@ internal sealed class Budget
     public float Stamina, HoeDurability, PickDurability;
     public int Stone;
 
-    public static Budget Of(Player player, VanillaRates rates, float pickSeconds)
+    public static Budget Of(Player player, VanillaRates rates, float pickSeconds, float staminaDiscount)
     {
         var hoe = player.GetRightItem();
         var budget = new Budget
         {
             Hoe = hoe,
-            HoeStamina = player.GetBuildStamina(),
+            HoeStamina = player.GetBuildStamina() * (1 - staminaDiscount),
             HoeWear = hoe.m_shared.m_useDurability ? player.GetPlaceDurability(hoe) * Game.m_durabilityRate : 0,
             HoeDurability = hoe.m_shared.m_useDurability ? hoe.m_durability : float.PositiveInfinity,
             Stamina = player.GetStamina(),
@@ -59,7 +59,7 @@ internal sealed class Budget
         {
             var pick = budget.Pickaxe;
             budget.PickVolume = rates.DigVolumePerHit(pick);
-            budget.PickStamina = AttackStamina(player, pick);
+            budget.PickStamina = AttackStamina(player, pick) * (1 - staminaDiscount);
             budget.PickWear = pick.m_shared.m_useDurability ? pick.m_shared.m_useDurabilityDrain * Game.m_durabilityRate : 0;
             budget.PickDurability = pick.m_shared.m_useDurability ? pick.m_durability : float.PositiveInfinity;
         }

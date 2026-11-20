@@ -13,6 +13,7 @@ Klik srovná plochu najednou a natře ji hlínou (jako vanilla Level ground, tr�
 - Cena jako ruční práce (podrobně `LevelEasily/SPEC.md`): švihy motyky (asi 1 na 4 body), odkopání hlouběji než 1 m
   údery krumpáčem z inventáře (výdrž a jeho opotřebení), dosypání nad 1 m nebo nad terén pod hráčem kámen podle Raise ground.
   Motyka je pak zablokovaná na dobu, kterou by práce trvala. Na co zdroje nestačí, to se nesrovná (od nejbližších bodů).
+  Výdrž má slevu 30 % proti ruční práci (`Cena / Sleva na výdrž`).
 - Obdělaná a dlážděná půda se srovná, ale nepřetře (volba v configu). V Ashlands nevznikne láva.
 - Respektuje wardy a zóny bez stavění v celé ploše a vanilla omezení motyky. Ostatní hráči ani server mód mít nemusí.
 - Nastavení: `BepInEx/config/michal.leveleasily.cfg` (i v Configuration Manageru).
