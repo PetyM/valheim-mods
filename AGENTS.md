@@ -14,6 +14,7 @@ Vlastní BepInEx módy do Valheimu, jedno repo, každý mód ve vlastní složce
 - Build: `dotnet build` ve složce módu. Cíl net48, reference přímo z herní složky, nic se necommituje.
 - Vydání: `dotnet build -c Release` vyrobí `build/PetyM-<Mód>-<verze>.zip` pro Thunderstore (tým PetyM, MIT),
   metadata v `<Mód>/Thunderstore/`, postup v `README.md`.
+- Repo je veřejné (GitHub `PetyM/valheim-mods`). `kb/` a `TODO.md` jsou v `.gitignore`, jen lokálně (Syncthing), nikdy je necommituj.
 - Herní API ověřuj dekompilací: `ilspycmd -t <Typ> <Managed>/assembly_valheim.dll`.
 
 ## Konvence
