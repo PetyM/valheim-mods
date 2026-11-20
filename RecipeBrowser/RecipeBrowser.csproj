@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Reference Include="$(ValheimDir)/BepInEx/plugins/ValheimModding-Jotunn/Jotunn.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.UI.dll" Private="false" />
+    <Reference Include="$(Managed)/Unity.TextMeshPro.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="$(Managed)/UnityEngine.AssetBundleModule.dll" Private="false" />
+    <Reference Include="$(Managed)/SoftReferenceableAssets.dll" Private="false" />
+  </ItemGroup>
+</Project>
