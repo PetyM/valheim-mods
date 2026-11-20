@@ -183,7 +183,22 @@ internal sealed class Catalog
             (Locations.Done ? $"Locations: {Locations.Places.Count} prefabs." : "Locations are still loading (chests only by name for now)."));
         DataConfig.Log.LogInfo("Hidden: " + filter.Summary());
         if (Locations.Done)
-            DataConfig.Log.LogInfo("Unknown biome: " + string.Join(", ", All.Where(e => !e.Biome.HasValue).Select(e => $"{e.Key} ({e.Name}, {e.Mod})")));
+            foreach (var e in All.Where(e => !e.Biome.HasValue))
+                DataConfig.Log.LogInfo($"Unknown biome: {e.Key} ({e.Name}, {e.Mod}) · {Diagnose(e)}");
+    }
+
+    // Why an entry has no biome: its source cards (seed, weak) and recipes with their inputs that have no biome either.
+    private string Diagnose(Entry entry)
+    {
+        var parts = new List<string>();
+        foreach (var card in Cards(entry, View.Sources))
+            parts.Add($"source '{card.Title}' seed={card.Seed?.ToString() ?? "-"}{(card.Weak ? " weak" : "")}");
+        foreach (var card in Cards(entry, View.Recipes))
+        {
+            var missing = card.Inputs.Select(i => i.Entry).Append(card.Station).Where(i => i != null && !i.Biome.HasValue).Select(i => i.Key).Distinct().ToList();
+            parts.Add($"{card.Kind} '{card.Title}'" + (missing.Count > 0 ? " needs " + string.Join("+", missing) : card.Inputs.Count == 0 ? " no inputs" : ""));
+        }
+        return parts.Count == 0 ? "no cards" : string.Join("; ", parts);
     }
 
     // Contract for the UI:
@@ -260,6 +275,8 @@ internal sealed class Catalog
         var output = PieceEntry(piece);
         var inputs = piece.m_resources.Where(r => r.m_resItem && r.m_amount > 0)
             .Select(r => new ItemStack(Find(r.m_resItem.name), r.m_amount)).Where(s => s.Entry != null).ToList();
+        // All resources hidden (e.g. a mod's NPC piece): not buildable, the source/use rule then hides the piece.
+        if (inputs.Count == 0 && !piece.GetComponent<Plant>()) return;
         string toolName = Localization.instance.Localize(tool.m_itemData.m_shared.m_name);
         cards.Add(new RecipeCard("Build", $"Build · {toolName}", false, StationEntry(piece.m_craftingStation), 0, inputs,
             new List<ItemStack> { new(output, 1) }, new List<string> { $"Tool: {toolName}" }) { Kind = CardKind.Build });

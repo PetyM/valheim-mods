@@ -140,6 +140,8 @@ internal static class Locations
         if (scannedFor != zone) yield break;
         Publish(foundPlaces, foundCreatures);
         SaveCache(key);
+        DataConfig.Log.LogInfo("Locations: dungeon themes " + string.Join(", ", dungeons.Select(d => d.themes.ToString()).Distinct()) +
+            $"; all rooms {DungeonDB.GetRooms()?.Count ?? 0}, room themes " + string.Join(", ", (DungeonDB.GetRooms() ?? new List<DungeonDB.RoomData>()).Where(r => r != null).GroupBy(r => r.m_theme).Select(g => $"{g.Key} {g.Count()}")));
         DataConfig.Log.LogInfo($"Locations: {locations.Count} locations, {roomCount} dungeon rooms, {places.Count} prefabs, {creatures.Count} creatures, {watch.ElapsedMilliseconds} ms (cached for next start).");
     }
 

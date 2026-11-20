@@ -12,7 +12,7 @@ namespace RecipeBrowser;
 internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, System.Action<RecipeCard> add)
 {
     private const string Harvest = "Pickup", Mining = "Mining", Chopping = "Chopping", Breaking = "Breaking", Chest = "Chest",
-        Drop = "Drop", Fishing = "Fishing", Trade = "Trader";
+        Drop = "Drop", Fishing = "Fishing", Trade = "Trader", Found = "Found";
 
     private readonly Dictionary<string, SortedSet<int>> vegetation = new();
     private readonly Dictionary<string, int> creatures = new();
@@ -59,8 +59,29 @@ internal sealed class Sources(ZNetScene scene, System.Func<string, Entry> find, 
                 AddCreature(prefab, character);
                 continue;
             }
-            if (!children.Contains(prefab) && !prefab.GetComponent<ItemDrop>() && (find(prefab.name) == null || vegetation.ContainsKey(prefab.name)))
+            // Prefabs that are also catalog entries (built pieces) only when they grow or stand in the world:
+            // PlantEverything adds a Piece to vanilla pickables like Pickable_Fiddlehead.
+            if (!children.Contains(prefab) && !prefab.GetComponent<ItemDrop>()
+                && (find(prefab.name) == null || vegetation.ContainsKey(prefab.name) || Locations.Places.ContainsKey(prefab.name) || prefab.GetComponent<Pickable>()))
                 AddHarvest(prefab);
+        }
+        AddLooseItems(prefabs);
+    }
+
+    // Items lying in locations and dungeon rooms (Sealbreaker fragments, eggs…) and creatures hatching from such eggs.
+    private void AddLooseItems(List<GameObject> prefabs)
+    {
+        foreach (var prefab in prefabs)
+        {
+            if (!prefab.GetComponent<ItemDrop>() || !Locations.Places.TryGetValue(prefab.name, out var placed) || placed.Count == 0) continue;
+            if (prefab.GetComponent<EggGrow>() is { m_grownPrefab: { } grown }) Lower(grown.name, placed.Min);
+            if (find(prefab.name) is not { } item) continue;
+            add(new RecipeCard($"{Found} · {item.Name}", Found, false, null, 0, new List<ItemStack>(), new List<ItemStack> { new(item, 1) },
+                new List<string> { "Lying in locations", "Biome: " + string.Join(", ", placed.Select(Progression.Name)) })
+            {
+                Kind = CardKind.Source,
+                Seed = placed.Min,
+            });
         }
     }
 

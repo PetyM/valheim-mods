@@ -15,7 +15,20 @@ internal sealed class Filter
     /// <summary>Reason to reject an item, null = it passes.</summary>
     public string RejectItem(string prefab, ItemDrop.ItemData.SharedData shared, bool vanilla) =>
         shared.m_itemType is Type.Customization or Type.Attach_Atgeir ? "type " + shared.m_itemType
-        : RejectName(prefab) ?? Dlc(shared.m_dlc) ?? (vanilla && Missing(shared.m_name) ? "missing translation " + shared.m_name : null);
+        : RejectName(prefab) ?? Dlc(shared.m_dlc) ?? (vanilla && Missing(shared.m_name) ? "missing translation " + shared.m_name : null)
+          ?? (vanilla && Unreleased(prefab) ? "unreleased or unused vanilla" : null);
+
+    // Vanilla 1.0.21 ships unfinished Deep North content and a few unused duplicates. They have recipes
+    // (made from each other), so the source/use rule does not catch them.
+    private static readonly HashSet<string> UnreleasedNames = new()
+    {
+        "OrbFrostFire", "OrbThunderBlood", "HelmetCrownofValheim", "CrownJewel", "FrozenKingDrop", "Shovel",
+        "StaffOrbofAhri", "StaffOrbofAhriUncooked", "StaffThunderBlood", "StaffThunderbloodUncooked", "KnifeVoid",
+        "TrophyBlob_Frost", "TrophyForestTroll", "TrophyDraugrFem",
+    };
+
+    private static bool Unreleased(string prefab) =>
+        UnreleasedNames.Contains(prefab) || prefab.EndsWith("_FrostFire") || prefab.EndsWith("_BloodLightning");
 
     /// <summary>Reason to reject a piece, null = it passes.</summary>
     public string RejectPiece(Piece piece, bool vanilla)

@@ -34,6 +34,8 @@ internal static class Progression
         ["TrophyGoblinKing"] = Plains, ["YagluthDrop"] = Plains, ["TrophySeekerQueen"] = Mistlands, ["QueenDrop"] = Mistlands,
         ["TrophyFader"] = AshLands, ["FaderDrop"] = AshLands,
         ["Wisp"] = Mistlands, // lured to the Wisp fountain (Wisplight), no drop table
+        ["WolfClaw"] = Mountain, ["FaderEmber"] = AshLands, ["ChickenMeat"] = Plains,
+        ["TrophyGoblinBruteBrosShaman"] = Plains, ["chest_hildir3"] = Plains, // Hildir's quest bosses Zil and Thungr
     };
 
     public static int Count => Names.Length;
