@@ -6,14 +6,16 @@ using UnityEngine;
 
 namespace LevelEasily;
 
-/// <summary>Sazby vanilla nástrojů načtené z prefabů, aby cena sledovala hru i módy, které je mění.</summary>
+/// <summary>Vanilla tool rates read from prefabs, so the cost follows the game and any mods that change them.</summary>
 internal sealed class VanillaRates
 {
-    /// <summary>Kolik vanilla švihů musí vrchol nechat nesrovnané, aby se mřížka švihů počítala za hotovou.</summary>
+    /// <summary>How far from the target a vertex may stay after a grid of vanilla swings for the grid to count as done.</summary>
     private const float MaxResidual = 0.05f;
 
     public Piece LevelPiece { get; }
     public TerrainOp LevelOp { get; }
+    public Piece RaisePiece { get; }
+    public TerrainOp RaiseOp { get; }
     public int VerticesPerSwing { get; }
     public float RaiseVolumePerSwing { get; }
     public ItemDrop Stone { get; }
@@ -27,7 +29,8 @@ internal sealed class VanillaRates
     {
         this.log = log;
         LevelPiece = hoe.m_pieces.First(p => p && p.name == "mud_road_v2").GetComponent<Piece>();
-        var raise = hoe.m_pieces.First(p => p && p.name == "raise_v2").GetComponent<Piece>();
+        var raise = RaisePiece = hoe.m_pieces.First(p => p && p.name == "raise_v2").GetComponent<Piece>();
+        RaiseOp = raise.GetComponentInChildren<TerrainOp>(true);
         LevelOp = LevelPiece.GetComponentInChildren<TerrainOp>(true);
         var levelOp = LevelOp.m_settings;
         var raiseOp = raise.GetComponentInChildren<TerrainOp>(true).m_settings;
@@ -37,15 +40,23 @@ internal sealed class VanillaRates
         Stone = raise.m_resources[0].m_resItem;
         StonePerRaiseSwing = raise.m_resources[0].m_amount;
 
-        log.LogInfo($"Level ground: smooth r{levelOp.m_smoothRadius} power {levelOp.m_smoothPower} → {VerticesPerSwing} vrcholů na švih; " +
+        log.LogInfo($"Level ground: smooth r{levelOp.m_smoothRadius} power {levelOp.m_smoothPower} → {VerticesPerSwing} vertices per swing; " +
                     $"piece groundPiece={LevelPiece.m_groundPiece} altGround={LevelPiece.m_allowAltGroundPlacement} " +
                     $"dungeon={LevelPiece.m_allowedInDungeons} deepSnow={LevelPiece.m_allowedInDeepSnow}");
-        log.LogInfo($"Raise ground: {RaiseVolumePerSwing:0.00} m³ a {StonePerRaiseSwing}× {Stone.name} na švih");
+        log.LogInfo($"Effects: Level ground place {Describe(LevelPiece.m_placeEffect)}, op {Describe(LevelOp.m_onPlacedEffect)}; " +
+                    $"Raise ground place {Describe(raise.m_placeEffect)}, op {Describe(RaiseOp.m_onPlacedEffect)}");
+        log.LogInfo($"Raise ground: {RaiseVolumePerSwing:0.00} m³ and {StonePerRaiseSwing}× {Stone.name} per swing");
     }
+
+    /// <summary>Effect prefab names, to check in the log which sounds and particles the mod plays.</summary>
+    public static string Describe(EffectList effects) =>
+        effects?.m_effectPrefabs == null || effects.m_effectPrefabs.Length == 0
+            ? "none"
+            : string.Join(", ", effects.m_effectPrefabs.Where(e => e.m_prefab).Select(e => e.m_prefab.name));
 
     public static VanillaRates FromHoe(PieceTable hoe, ManualLogSource log) => new(hoe, log);
 
-    /// <summary>Objem, který jeden úder nástrojem do terénu vykope; 0 = nástroj nekope.</summary>
+    /// <summary>Volume one terrain hit with the tool digs out; 0 = the tool does not dig.</summary>
     public float DigVolumePerHit(ItemDrop.ItemData tool)
     {
         var shared = tool.m_shared;
@@ -62,34 +73,34 @@ internal sealed class VanillaRates
                 Mathf.Max(d <= s.m_levelRadius || s.m_square ? levelDepth : 0,
                     d <= s.m_raiseRadius ? raiseDepth * Falloff(d, s.m_raiseRadius, s.m_raisePower, s.m_square) : 0));
             log.LogInfo($"{shared.m_name}: {op.name} level={s.m_level} r{s.m_levelRadius} offset {s.m_levelOffset}, " +
-                        $"raise={s.m_raise} r{s.m_raiseRadius} delta {s.m_raiseDelta}, square={s.m_square} → {volume:0.00} m³ na úder");
+                        $"raise={s.m_raise} r{s.m_raiseRadius} delta {s.m_raiseDelta}, square={s.m_square} → {volume:0.00} m³ per hit");
         }
         digVolumes[shared] = volume;
         return volume;
     }
 
-    /// <summary>Co vanilla úder do terénu vyhodí (<c>TerrainOp.OnPlaced</c>): předmět a průměrný počet na úder.</summary>
+    /// <summary>What a vanilla terrain hit drops (<c>TerrainOp.OnPlaced</c>): the item and the average amount per hit.</summary>
     public DigYield YieldPerHit(ItemDrop.ItemData tool)
     {
         var shared = tool.m_shared;
         if (digYields.TryGetValue(shared, out var yield)) return yield;
         var op = shared.m_spawnOnHitTerrain ? shared.m_spawnOnHitTerrain.GetComponentInChildren<TerrainOp>(true) : null;
         var drop = op && op.m_spawnOnPlaced ? op.m_spawnOnPlaced.GetComponent<ItemDrop>() : null;
-        // Random.value <= šance, pak Random.Range(1, max + 1) kusů.
+        // Random.value <= chance, then Random.Range(1, max + 1) pieces.
         yield = drop
             ? new DigYield(drop, Mathf.Clamp01(op.m_chanceToSpawn) * (1 + Mathf.Max(1, op.m_maxSpawned)) / 2f, op.m_spawnAtMaxLevelDepth)
             : new DigYield(null, 0, false);
         log.LogInfo(drop
-            ? $"{shared.m_name}: úder vyhodí {drop.name} se šancí {op.m_chanceToSpawn}, 1–{op.m_maxSpawned} ks " +
-              $"(průměr {yield.PerHit:0.00}), i v max. hloubce {op.m_spawnAtMaxLevelDepth}"
-            : $"{shared.m_name}: úder do terénu nic nevyhodí");
+            ? $"{shared.m_name}: a hit drops {drop.name} with chance {op.m_chanceToSpawn}, 1–{op.m_maxSpawned} pcs " +
+              $"(average {yield.PerHit:0.00}), also at max depth {op.m_spawnAtMaxLevelDepth}"
+            : $"{shared.m_name}: a terrain hit drops nothing");
         digYields[shared] = yield;
         return yield;
     }
 
     /// <summary>
-    /// Kolik vrcholů srovná jeden švih, když hráč švihá v pravidelné mřížce: k² pro největší rozestup k,
-    /// při kterém žádný vrchol nezůstane víc než <see cref="MaxResidual"/> od cíle (smooth jen přibližuje).
+    /// How many vertices one swing levels when the player swings in a regular grid: k² for the largest spacing k
+    /// at which no vertex stays further than <see cref="MaxResidual"/> from the target (smoothing only approaches it).
     /// </summary>
     private static int SmoothVerticesPerSwing(float radius, float power)
     {

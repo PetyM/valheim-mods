@@ -1,69 +1,74 @@
-# LevelEasily – specifikace
+# LevelEasily – specification
 
-Položka motyky **Srovnat plochu**: jedním kliknutím srovná obdélník na mřížce metrů na cílovou výšku.
-Zásada: stojí tolik, kolik by stála stejná práce ručně vanilla nástroji (motyka, krumpáč, Raise ground). Rychlejší je jen
-pohodlí, ne zdroje. Vanilla chování, ze kterého model vychází: `kb/vanilla-motyka-dosah-a-cena.md`.
+Hoe piece **Level area**: one click levels a rectangle snapped to the metre grid to a target height.
+Principle: it costs as much as the same work done by hand with vanilla tools (hoe, pickaxe, Raise ground). Only the
+convenience is faster, not the resources. The vanilla behaviour the model is based on: `../kb/vanilla-motyka-dosah-a-cena.md`
+(knowledge base, in Czech).
 
-## Plocha a cíl
-- Obdélník přichycený na celé metry (vrcholy heightmapy), šipky mění rozměry (z pohledu kamery), 1 až `Největší strana`.
-- Výchozí cíl = terén pod hráčem (`ZoneSystem.GetGroundHeight`) jako vanilla Level ground, nezávisle na skoku či plavání.
-- **L** zamkne cíl na horní plochu kusu stavby pod kurzorem (i když kurzor míří na jeho bok) (jinak terén pod hráčem) a mřížku; druhé L odemkne.
-  **PageUp/PageDown** posune cíl o `Krok výšky` a zamkne.
+## Area and target
+- Rectangle snapped to whole metres (heightmap vertices). Arrow keys change its size relative to the camera, 1 to `Largest side`.
+- Default target = terrain under the player (`ZoneSystem.GetGroundHeight`), like vanilla Level ground, unaffected by jumping or swimming.
+- **L** locks the target to the top surface of the building piece under the cursor (even when aiming at its side; otherwise
+  terrain under the player) and locks the grid; pressing L again unlocks. **PageUp/PageDown** moves the target by
+  `Height step` and locks it.
 
-## Co se s vrcholem stane
-Každý vrchol dostane jeden stav (barva v náhledu):
-- **rovný** (zelená): odchylka do 1 cm, nic se nedělá,
-- **ukopnout** (červená) / **dosypat** (modrá): sytost podle odchylky,
-- **mimo dosah** (fialová): cíl je dál než ±8 m od základní výšky; srovná se jen na hranici dosahu,
-- **pod stavbou** (šedá): v okolí vrcholu (±0,45 m, od min. do max. výšky ±0,5 m) je kus stavby nebo rostlina; vynechá se,
-- **chybí krumpáč** (tmavě červená): potřeboval by krumpáč a žádný použitelný v inventáři není; vynechá se,
-- **nestačí zdroje** (bledá barva): nevejde se do výdrže, opotřebení nebo kamene; vynechá se.
+## What happens to a vertex
+Each vertex gets one state (colour in the preview):
+- **level** (green): deviation up to 1 cm, nothing is done,
+- **cut** (red) / **fill** (blue): saturation by deviation,
+- **out of reach** (purple): the target is more than ±8 m from the base height; levelled only to the edge of the reach,
+- **under building** (grey): a building piece or plant is near the vertex (±0.45 m, from min to max height ±0.5 m); skipped,
+- **no pickaxe** (dark red): would need a pickaxe and there is no usable one in the inventory; skipped,
+- **not enough resources** (dimmed): does not fit into stamina, wear or stone; skipped.
 
-## Cena
-Pro vrchol se změnou Δ (proti dosažitelnému cíli) a dosavadní smooth deltou `s`:
-- **Motyka**: každý měněný vrchol potřebuje dorovnat. Švihů Level ground = měněné vrcholy ÷ vrcholy na švih, kde vrcholy
-  na švih = k², k je největší rozestup švihů, při kterém mřížka vanilla švihů srovná každý vrchol aspoň na 95 %
-  (z nastavení `mud_road_v2`, vanilla vychází k = 2, tedy 4 vrcholy).
-- **Krumpáč**: motyka sníží vrchol nejvýš o `1 + s`. Zbytek je objem pro krumpáč (1 m² na vrchol), počet úderů =
-  objem ÷ objem jednoho úderu (z `TerrainOp` prefabu `m_spawnOnHitTerrain` krumpáče). Úder stojí výdrž jako útok
-  krumpáčem (dovednost, vybavení, efekty) a opotřebení krumpáče. Použije se krumpáč z inventáře (dovednost Pickaxes),
-  který ještě vykope nejvíc (zbývající údery × objem úderu); nemusí být v ruce.
-- **Kámen**: motyka zvedne vrchol zadarmo nejvýš o `1 − s`, a jen když cíl není výš než terén pod hráčem (vanilla smooth
-  táhne k terénu pod hráčem). Zbytek dosypání = objem pro Raise ground: švihů = objem ÷ objem švihu `raise_v2`,
-  kámen = švihy × cena `raise_v2`. Každý švih Raise ground stojí výdrž a opotřebení motyky.
-- **Čas**: po kliknutí je motyka zablokovaná na (švihy motyky × `m_placeDelay`) + (údery krumpáčem × `Čas úderu krumpáčem`).
-- **Vykopaný materiál**: co vanilla úder do terénu vyhodí (`TerrainOp.m_spawnOnPlaced`, šance, 1–max kusů; v hloubce
-  7,95 m pod základem nic, pokud prefab nepovoluje), to mód dá za započítané údery jako průměr zaokrouhlený dolů.
-  Přímo do inventáře, přebytek k nohám. Nakopaný kámen se nezapočítává do kamene na dosypání téže plochy.
-- **Sleva na výdrž** (config `Cena / Sleva na výdrž`, výchozí 30 %): švihy i údery stojí o tolik méně výdrže.
-  Rozhodnutí uživatele po zkoušce ve hře (2026-11-20). Opotřebení, kámen ani čas sleva nemění.
-- `m_noPlacementCost` (debug) ruší jen kámen, jako vanilla.
+## Cost
+For a vertex with change Δ (towards the reachable target) and existing smooth delta `s`:
+- **Hoe**: every changed vertex needs finishing. Level ground swings = changed vertices ÷ vertices per swing, where
+  vertices per swing = k², k being the largest swing spacing at which a grid of vanilla swings levels every vertex to at
+  least 95 % (from the `mud_road_v2` settings; vanilla gives k = 2, i.e. 4 vertices).
+- **Pickaxe**: the hoe lowers a vertex by at most `1 + s`. The rest is pickaxe volume (1 m² per vertex), hits =
+  volume ÷ volume of one hit (from the `TerrainOp` of the pickaxe's `m_spawnOnHitTerrain` prefab). A hit costs stamina like a
+  pickaxe attack (skill, equipment, status effects) and pickaxe wear. The pickaxe used is the one in the inventory
+  (Pickaxes skill) that can still dig the most (hits left × volume per hit); it does not need to be equipped.
+- **Stone**: the hoe raises a vertex for free by at most `1 − s`, and only when the target is not above the terrain under
+  the player (vanilla smooth pulls towards the terrain under the player). The rest of the fill is Raise ground volume:
+  swings = volume ÷ volume of a `raise_v2` swing, stone = swings × `raise_v2` cost. Each Raise ground swing costs hoe
+  stamina and wear.
+- **Time**: after the click the hoe is blocked for (hoe swings × `m_placeDelay`) + (pickaxe hits × `Pickaxe hit time`).
+- **Dug-up material**: whatever a vanilla terrain hit drops (`TerrainOp.m_spawnOnPlaced`, chance, 1–max pieces; nothing at
+  7.95 m below the base unless the prefab allows it) is given for the counted hits as the average rounded down.
+  Straight into the inventory, overflow dropped at the feet. Stone dug up is not counted towards stone for filling the same area.
+- **Stamina discount** (config `Cost / Stamina discount`, default 30 %): swings and hits cost that much less stamina.
+  User decision after testing in game (2026-11-20). Wear, stone and time are not discounted.
+- `m_noPlacementCost` (debug) waives only stone, like vanilla.
 
-## Částečné srovnání
-Když zdroje nestačí, srovná se tolik vrcholů, kolik se vejde, od nejbližších k hráči. Náhled ukáže, co se srovná, a pod
-křížkem procento plochy. Nulové srovnání = hláška, co chybí.
+## Partial levelling
+When resources are short, as many vertices as fit are levelled, nearest to the player first. The preview shows what will
+be levelled and the readout below the crosshair shows how many points. Nothing affordable = a message saying what is missing.
 
-## Povrch
-- Natře se hlína (r = 1, g = b = 0) jen v buňkách, jejichž všechny čtyři rohy jsou po zápisu rovné a aspoň jeden se mění. Alfa (v Ashlands
-  láva, jinde vegetace) zůstane.
-- `Zachovat obdělanou a dlážděnou půdu` (výchozí zapnuto): buňky s g > 0,5 (mimo Deep North, kde g je sníh) nebo b > 0,5
-  se nepřetírají.
+## Surface
+- Dirt (r = 1, g = b = 0) is painted only in cells whose four corners are all level after the write and at least one of
+  them changes. Alpha (lava in the Ashlands, vegetation elsewhere) is kept.
+- `Preserve cultivated and paved ground` (on by default): cells with g > 0.5 (outside the Deep North, where g is snow) or
+  b > 0.5 are not repainted.
 
-## Kontroly před zápisem
-- Vanilla stav umístění (`UpdatePlacementGhost`): hluboký sníh, dungeon, neplatné místo atd. s vanilla hláškou.
-- Ward a zóna bez stavění pro **každý** vrchol, kterého se zápis dotkne (i rovné rohy natíraných buněk).
-- Jiný hráč do 1,5 m od vrcholu, který se zvedne o víc než 0,5 m: odmítnout.
-- Cíl pod hladinou moře: jen upozornění pod křížkem.
+## Checks before writing
+- Vanilla placement status (`UpdatePlacementGhost`): deep snow, dungeon, invalid spot etc. with the vanilla message.
+- Ward and no-build zone for **every** vertex the write touches (including level corners of painted cells).
+- Another player within 1.5 m of a vertex that rises by more than 0.5 m: refuse.
+- Target below sea level: only a warning in the readout.
 
-## Zápis (multiplayer)
-1. `TerrainComp` jen těch zón, kde leží dotčené vrcholy, vytvořit/převzít (`ClaimOwnership`), počkat 0,5 s;
-   motyka je mezitím zablokovaná.
-2. Ověřit vlastnictví a `m_initialized`, načíst čerstvá data (`CheckLoad`, `Poke`), plán spočítat znovu jen z vrcholů
-   v převzatých zónách a zopakovat všechny kontroly.
-3. Zapsat `m_levelDelta = cíl − základní výška` (ne `LevelTerrain`, ten při součtu delt nad ±8 m netrefí cíl), natřít,
-   `m_operations++`, `m_lastOpPoint/Radius`, `Save`, `Poke`.
-4. Teprve po úspěšném zápisu strhnout výdrž, opotřebení a kámen, spustit animaci švihu a efekt.
-Jakékoli selhání před krokem 3 = nic se nezapíše ani nezaplatí.
+## Writing (multiplayer)
+1. Create/claim (`ClaimOwnership`) the `TerrainComp` of only those zones containing touched vertices, wait 0.5 s; the hoe
+   is blocked meanwhile.
+2. Verify ownership and `m_initialized`, load fresh data (`CheckLoad`, `Poke`), recompute the plan only from vertices in
+   claimed zones and repeat all checks.
+3. Write `m_levelDelta = target − base height` (not `LevelTerrain`, which misses the target when the deltas sum beyond
+   ±8 m), paint, `m_operations++`, `m_lastOpPoint/Radius`, `Save`, `Poke`.
+4. Only after a successful write deduct stamina, wear and stone, give dug-up material, play the swing animation and the
+   vanilla effects of the work done: Level ground (`Piece.m_placeEffect`, `TerrainOp.m_onPlacedEffect`, hoe `m_buildEffect`),
+   Raise ground when stone was used, pickaxe terrain hit (weapon and attack `m_hitTerrainEffect`) when the pickaxe was used.
+Any failure before step 3 = nothing is written or paid.
 
-## Mimo rozsah
-- Dovednost za údery krumpáčem se nepřičítá.
+## Out of scope
+- Pickaxe skill is not raised for counted hits.

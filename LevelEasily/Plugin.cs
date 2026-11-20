@@ -56,23 +56,23 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         instance = this;
-        lockKey = Config.Bind("Klávesy", "Zamknout", new KeyboardShortcut(KeyCode.L),
-            "Zamkne cílovou výšku (horní plocha kusu stavby pod kurzorem, jinak terén pod hráčem) a mřížku plochy. Druhé stisknutí odemkne.");
-        raiseKey = Config.Bind("Klávesy", "Zvýšit cíl", new KeyboardShortcut(KeyCode.PageUp));
-        lowerKey = Config.Bind("Klávesy", "Snížit cíl", new KeyboardShortcut(KeyCode.PageDown));
-        widerKey = Config.Bind("Klávesy", "Širší", new KeyboardShortcut(KeyCode.RightArrow));
-        narrowerKey = Config.Bind("Klávesy", "Užší", new KeyboardShortcut(KeyCode.LeftArrow));
-        longerKey = Config.Bind("Klávesy", "Delší", new KeyboardShortcut(KeyCode.UpArrow));
-        shorterKey = Config.Bind("Klávesy", "Kratší", new KeyboardShortcut(KeyCode.DownArrow));
-        step = Config.Bind("Klávesy", "Krok výšky", 0.1f, "O kolik metrů posune cíl jedno stisknutí.");
-        maxSize = Config.Bind("Plocha", "Největší strana", 16,
-            new ConfigDescription("Největší délka strany plochy v metrech.", new AcceptableValueRange<int>(1, 32)));
-        preserveSoil = Config.Bind("Plocha", "Zachovat obdělanou a dlážděnou půdu", true,
-            "Obdělanou a dlážděnou půdu srovná, ale nepřetře hlínou.");
-        pickaxeSeconds = Config.Bind("Cena", "Čas úderu krumpáčem", 1f,
-            new ConfigDescription("Na kolik sekund zablokuje motyku jeden započítaný úder krumpáčem.", new AcceptableValueRange<float>(0f, 5f)));
-        staminaDiscount = Config.Bind("Cena", "Sleva na výdrž", 0.3f,
-            new ConfigDescription("O kolik méně výdrže stojí švihy motyky a údery krumpáčem proti ruční práci (0,3 = o 30 %).",
+        lockKey = Config.Bind("Keys", "Lock", new KeyboardShortcut(KeyCode.L),
+            "Locks the target height (top surface of the building piece under the cursor, otherwise the ground under the player) and the area grid. Press again to unlock.");
+        raiseKey = Config.Bind("Keys", "Raise target", new KeyboardShortcut(KeyCode.PageUp));
+        lowerKey = Config.Bind("Keys", "Lower target", new KeyboardShortcut(KeyCode.PageDown));
+        widerKey = Config.Bind("Keys", "Wider", new KeyboardShortcut(KeyCode.RightArrow));
+        narrowerKey = Config.Bind("Keys", "Narrower", new KeyboardShortcut(KeyCode.LeftArrow));
+        longerKey = Config.Bind("Keys", "Longer", new KeyboardShortcut(KeyCode.UpArrow));
+        shorterKey = Config.Bind("Keys", "Shorter", new KeyboardShortcut(KeyCode.DownArrow));
+        step = Config.Bind("Keys", "Height step", 0.1f, "How many metres one key press moves the target.");
+        maxSize = Config.Bind("Area", "Largest side", 16,
+            new ConfigDescription("Largest length of an area side in metres.", new AcceptableValueRange<int>(1, 32)));
+        preserveSoil = Config.Bind("Area", "Preserve cultivated and paved ground", true,
+            "Levels cultivated and paved ground but does not paint it over with dirt.");
+        pickaxeSeconds = Config.Bind("Cost", "Pickaxe hit time", 1f,
+            new ConfigDescription("How many seconds one counted pickaxe hit blocks the hoe for.", new AcceptableValueRange<float>(0f, 5f)));
+        staminaDiscount = Config.Bind("Cost", "Stamina discount", 0.3f,
+            new ConfigDescription("How much less stamina hoe swings and pickaxe hits cost compared with manual work (0.3 = 30 % less).",
                 new AcceptableValueRange<float>(0f, 1f)));
         aimMask = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "static_solid", "terrain");
         pieceMask = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "static_solid");
@@ -89,10 +89,10 @@ public sealed class Plugin : BaseUnityPlugin
         foreach (var renderer in prefab.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
         PieceManager.Instance.AddPiece(new CustomPiece(prefab, fixReference: false, new PieceConfig
         {
-            Name = "Srovnat plochu",
-            Description = "Srovná obdélník přichycený na mřížku metrů na cílovou výšku jedním kliknutím. " +
-                          "Stojí tolik, kolik by stála ruční práce: švihy motyky, údery krumpáčem z inventáře a kámen za dosypání.\n" +
-                          "Šipky: velikost · L: zamknout výšku a mřížku · PageUp/PageDown: posunout cíl",
+            Name = "Level area",
+            Description = "Levels a rectangle snapped to the metre grid to the target height with one click. " +
+                          "Costs as much as the manual work would: hoe swings, pickaxe hits from your inventory and stone for filling.\n" +
+                          "Arrows: size · L: lock height and grid · PageUp/PageDown: move target",
             PieceTable = "Hoe",
         }));
     }
@@ -160,7 +160,7 @@ public sealed class Plugin : BaseUnityPlugin
     private static int Steps(ConfigEntry<KeyboardShortcut> up, ConfigEntry<KeyboardShortcut> down) =>
         (up.Value.IsDown() ? 1 : 0) - (down.Value.IsDown() ? 1 : 0);
 
-    /// <summary>Jako vanilla Level ground: terén pod hráčem, ne výška nohou (skok, plavání, podlaha).</summary>
+    /// <summary>Like vanilla Level ground: the ground under the player, not the feet height (jumping, swimming, floors).</summary>
     private static float GroundUnder(Player player) => ZoneSystem.instance.GetGroundHeight(player.transform.position);
 
     private float AimedHeight(Player player)
@@ -169,7 +169,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (!Physics.Raycast(camera.position, camera.forward, out var hit, AimDistance, aimMask) ||
             !hit.collider.GetComponentInParent<Piece>())
             return GroundUnder(player);
-        // Horní plocha zasaženého kusu v místě zásahu, i když kurzor míří na jeho bok.
+        // Top surface of the hit piece at the hit point, even when the cursor aims at its side.
         var bounds = hit.collider.bounds;
         var down = new Ray(new Vector3(hit.point.x, bounds.max.y + 1, hit.point.z), Vector3.down);
         return hit.collider.Raycast(down, out var top, bounds.size.y + 2) ? top.point.y : hit.point.y;
@@ -200,46 +200,46 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static string ShortageText(Shortage s) => s switch
     {
-        Shortage.Stamina => "málo výdrže",
-        Shortage.HoeWear => "motyka by se rozbila",
-        Shortage.PickaxeWear => "krumpáč by se rozbil",
-        Shortage.Stone => "málo kamene",
+        Shortage.Stamina => "not enough stamina",
+        Shortage.HoeWear => "the hoe would break",
+        Shortage.PickaxeWear => "the pickaxe would break",
+        Shortage.Stone => "not enough stone",
         _ => "",
     };
 
     private string Readout()
     {
         var text = new StringBuilder();
-        text.Append($"{size.x} × {size.y} m · cíl {plan.Target:0.00} m");
-        if (lockedHeight.HasValue) text.Append(" · zamčeno");
-        if (plan.Target < ZoneSystem.instance.m_waterLevel) text.Append(" · pod hladinou moře");
+        text.Append($"{size.x} × {size.y} m · target {plan.Target:0.00} m");
+        if (lockedHeight.HasValue) text.Append(" · locked");
+        if (plan.Target < ZoneSystem.instance.m_waterLevel) text.Append(" · below sea level");
         text.AppendLine();
 
         int wanted = plan.Vertices.Count(v => v.Wanted);
-        if (working) text.AppendLine("upravuji terén…");
-        else if (wanted == 0) text.AppendLine("není co srovnat");
+        if (working) text.AppendLine("levelling…");
+        else if (wanted == 0) text.AppendLine("nothing to level");
         else
         {
-            text.Append($"motyka {cost.AllSwings}× · krumpáč {cost.PickHits}× · kámen {cost.Stone} · výdrž {cost.Stamina:0} · {cost.Seconds:0.#} s");
+            text.Append($"hoe {cost.AllSwings}× · pickaxe {cost.PickHits}× · stone {cost.Stone} · stamina {cost.Stamina:0} · {cost.Seconds:0.#} s");
             if (cost.Returned > 0)
-                text.Append($" · vykopeš {cost.Returned}× {Localization.instance.Localize(budget.Yield.Item.m_itemData.m_shared.m_name)}");
+                text.Append($" · you dig up {cost.Returned}× {Localization.instance.Localize(budget.Yield.Item.m_itemData.m_shared.m_name)}");
             text.AppendLine();
-            text.Append($"opotřebení: motyka {cost.HoeWear:0.#}");
+            text.Append($"wear: hoe {cost.HoeWear:0.#}");
             if (cost.PickHits > 0) text.Append($", {Localization.instance.Localize(budget.Pickaxe.m_shared.m_name)} {cost.PickWear:0.#}");
-            if (cost.Vertices < wanted) text.Append($" · srovná se {cost.Vertices} z {wanted} bodů ({ShortageText(shortage)})");
+            if (cost.Vertices < wanted) text.Append($" · levels {cost.Vertices} of {wanted} points ({ShortageText(shortage)})");
             text.AppendLine();
         }
 
         var skipped = new List<string>();
         int underPiece = plan.Count(VertexState.UnderPiece), noPickaxe = plan.Count(VertexState.NeedsPickaxe);
         int outOfReach = plan.Vertices.Count(v => v.Unreachable);
-        if (underPiece > 0) skipped.Add($"pod stavbou {underPiece}");
-        if (noPickaxe > 0) skipped.Add($"chybí krumpáč {noPickaxe}");
-        if (outOfReach > 0) skipped.Add($"mimo dosah ±8 m {outOfReach}");
-        if (skipped.Count > 0) text.AppendLine("vynecháno: " + string.Join(" · ", skipped));
+        if (underPiece > 0) skipped.Add($"under building {underPiece}");
+        if (noPickaxe > 0) skipped.Add($"no pickaxe {noPickaxe}");
+        if (outOfReach > 0) skipped.Add($"out of reach ±8 m {outOfReach}");
+        if (skipped.Count > 0) text.AppendLine("skipped: " + string.Join(" · ", skipped));
 
-        text.Append($"{Hint(narrowerKey)}/{Hint(widerKey)} šířka · {Hint(shorterKey)}/{Hint(longerKey)} délka · " +
-                    $"{Hint(lockKey)} zamknout · {Hint(raiseKey)}/{Hint(lowerKey)} výška");
+        text.Append($"{Hint(narrowerKey)}/{Hint(widerKey)} width · {Hint(shorterKey)}/{Hint(longerKey)} length · " +
+                    $"{Hint(lockKey)} lock · {Hint(raiseKey)}/{Hint(lowerKey)} height");
         return text.ToString();
     }
 
@@ -252,14 +252,14 @@ public sealed class Plugin : BaseUnityPlugin
         {
             if (shortage == Shortage.Stamina) Hud.instance.StaminaBarEmptyFlash();
             Refuse(player, shortage != Shortage.None ? Capitalise(ShortageText(shortage))
-                : plan.Count(VertexState.NeedsPickaxe) > 0 ? "Bez krumpáče v inventáři to nejde" : "Plocha už je rovná");
+                : plan.Count(VertexState.NeedsPickaxe) > 0 ? "You need a pickaxe in your inventory" : "The area is already level");
             return;
         }
         if (Blocker(player, plan) is { } blocked) { Refuse(player, blocked); return; }
         StartCoroutine(LevelRoutine(player, plan.Area, plan.Target, plan.FreeFill));
     }
 
-    /// <summary>Důvod, proč plochu nejde upravit, nebo null. Kontroluje každý vrchol, kterého se zápis dotkne.</summary>
+    /// <summary>Why the area cannot be modified, or null. Checks every vertex the write touches.</summary>
     private static string Blocker(Player player, AreaPlan area)
     {
         foreach (var v in TerrainWriter.Touched(area))
@@ -271,7 +271,7 @@ public sealed class Plugin : BaseUnityPlugin
                 return "$msg_privatezone";
             }
         }
-        return OtherPlayerInTheWay(player, area) ? "V ploše stojí jiný hráč" : null;
+        return OtherPlayerInTheWay(player, area) ? "Another player is standing in the area" : null;
     }
 
     private static bool OtherPlayerInTheWay(Player self, AreaPlan area)
@@ -290,7 +290,7 @@ public sealed class Plugin : BaseUnityPlugin
         return false;
     }
 
-    /// <summary>Zápis ve dvou fázích kvůli souběhu s jiným vlastníkem zóny, platí se až po úspěšném zápisu.</summary>
+    /// <summary>Two-phase write because of races with another zone owner; the cost is paid only after a successful write.</summary>
     private IEnumerator LevelRoutine(Player player, RectInt area, float target, bool freeFill)
     {
         working = true;
@@ -299,17 +299,17 @@ public sealed class Plugin : BaseUnityPlugin
         try
         {
             var claimed = TerrainWriter.Claim(plan);
-            if (claimed == null) { Refuse(player, "Terén tady teď nejde upravit"); yield break; }
+            if (claimed == null) { Refuse(player, "The terrain cannot be modified here right now"); yield break; }
             yield return new WaitForSeconds(ClaimWait);
 
             if (!player || player != Player.m_localPlayer || player.IsDead() || player.GetRightItem() != hoe) yield break;
-            if (!TerrainWriter.Ready(claimed)) { Refuse(player, "Terén tu právě upravuje jiný hráč"); yield break; }
+            if (!TerrainWriter.Ready(claimed)) { Refuse(player, "Another player is modifying the terrain here"); yield break; }
 
-            // Za čekání se mohl změnit terén, zdroje i hráči kolem: spočítat a zkontrolovat znovu.
+            // Terrain, resources and nearby players may have changed while waiting: measure and check again.
             var fresh = Budget.Of(player, rates, pickaxeSeconds.Value, staminaDiscount.Value);
             var written = AreaPlan.Measure(area, target, freeFill, fresh.Pickaxe != null, player.m_placementGhost, pieceMask);
             var (paid, lack) = fresh.Select(written, player.transform.position, rates, v => TerrainWriter.Covers(claimed, v));
-            if (paid.Vertices == 0) { Refuse(player, lack != Shortage.None ? Capitalise(ShortageText(lack)) : "Plocha už je rovná"); yield break; }
+            if (paid.Vertices == 0) { Refuse(player, lack != Shortage.None ? Capitalise(ShortageText(lack)) : "The area is already level"); yield break; }
             if (Blocker(player, written) is { } blocked) { Refuse(player, blocked); yield break; }
 
             try
@@ -322,8 +322,7 @@ public sealed class Plugin : BaseUnityPlugin
             }
             player.FaceLookDirection();
             player.m_zanim.SetTrigger(hoe.m_shared.m_attack.m_attackAnimation);
-            rates.LevelOp.m_onPlacedEffect.Create(written.Centre, Quaternion.identity);
-            hoe.m_shared.m_buildEffect.Create(player.transform.position, Quaternion.identity);
+            PlayEffects(player, hoe, fresh, paid, written.Centre);
             player.m_lastToolUseTime = Time.time + Mathf.Max(0, paid.Seconds - player.m_placeDelay);
             plan = null;
             StartCoroutine(ResetGrassLater(written));
@@ -331,6 +330,29 @@ public sealed class Plugin : BaseUnityPlugin
         finally
         {
             working = false;
+        }
+    }
+
+    /// <summary>
+    /// Sounds and particles of the vanilla actions the click stands for: the Level ground swing always (Piece.m_placeEffect
+    /// is what vanilla PlacePiece plays, the TerrainOp effect is the dust), Raise ground and a pickaxe hit when they were used.
+    /// </summary>
+    private void PlayEffects(Player player, ItemDrop.ItemData hoe, Budget paidFrom, Cost paid, Vector3 centre)
+    {
+        var rotation = Quaternion.identity;
+        rates.LevelPiece.m_placeEffect.Create(centre, rotation);
+        rates.LevelOp.m_onPlacedEffect.Create(centre, rotation);
+        hoe.m_shared.m_buildEffect.Create(player.transform.position, rotation);
+        if (paid.RaiseSwings > 0)
+        {
+            rates.RaisePiece.m_placeEffect.Create(centre, rotation);
+            rates.RaiseOp.m_onPlacedEffect.Create(centre, rotation);
+        }
+        if (paid.PickHits > 0)
+        {
+            // Attack.DoMeleeAttack plays both the weapon's and the attack's terrain hit effect.
+            paidFrom.Pickaxe.m_shared.m_hitTerrainEffect.Create(centre, rotation);
+            paidFrom.Pickaxe.m_shared.m_attack.m_hitTerrainEffect.Create(centre, rotation);
         }
     }
 
@@ -346,7 +368,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (paid.Returned > 0) GiveDugItems(player, paidFrom.Yield.Item, paid.Returned);
     }
 
-    /// <summary>Vykopaný materiál rovnou do inventáře, co se nevejde, vypadne k nohám (vanilla ho hází na zem).</summary>
+    /// <summary>Dug-up material goes straight to the inventory; what does not fit drops at the feet (vanilla throws it on the ground).</summary>
     private static void GiveDugItems(Player player, ItemDrop item, int amount)
     {
         var inventory = player.GetInventory();
@@ -377,8 +399,8 @@ public sealed class Plugin : BaseUnityPlugin
     private static class TryPlacePiecePatch
     {
         /// <summary>
-        /// Neplatné umístění (sníh, dungeon, ward u kurzoru…) nechá na vanilla, ta vypíše hlášku a vrátí false.
-        /// Platné vyřídí mód a vrátí false, takže vanilla nic nestrhne; cenu a animaci řeší <see cref="LevelRoutine"/>.
+        /// Invalid placement (snow, dungeon, ward at the cursor…) is left to vanilla, which shows its message and returns false.
+        /// Valid placement is handled by the mod and returns false, so vanilla charges nothing; cost and animation are done in <see cref="LevelRoutine"/>.
         /// </summary>
         private static bool Prefix(Player __instance, Piece piece, ref bool __result)
         {
