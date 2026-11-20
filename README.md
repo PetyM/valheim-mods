@@ -15,7 +15,8 @@ s hledáním vlevo, záložky vpravo. Políčka jsou stejně velká jako v inven
   `|` znamená nebo (`#swords|#axes`).
 - Při psaní `#`, `@` a `^` se pod polem nabízí doplnění s českým popisem a počtem výsledků, **Tab** vezme první.
 - Pod polem jsou čipy (Zbraně, Zbroj, Jídlo, Lektvary, Materiály, Munice, Nástroje, Stavby, Trofeje, Ryby, Ostatní,
-  Vyrobitelné, Záložky). Klik přidá nebo odebere tag v hledání, pravý klik ho přidá negovaný.
+  Vyrobitelné, Záložky). Kategorie se chovají jako záložky: klik nahradí předchozí kategorii, Ctrl+klik ji přidá jako
+  „nebo“ (`#weapons|#armor`). Vyrobitelné a Záložky se přidávají k filtru. Pravý klik tag vyřadí (`-#tag`).
 
 **Tagy:**
 - kategorie `#materials #food #potions #weapons #armor #ammo #tools #pieces #trophies #fish #misc`;

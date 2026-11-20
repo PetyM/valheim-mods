@@ -115,14 +115,45 @@ internal sealed class SearchBar
         changed();
     }
 
+    // Kategorie se chovají jako záložky: klik nahradí předchozí kategorii, Ctrl+klik ji přidá jako „nebo“ (#a|#b).
+    // Ostatní čipy (vyrobitelné, záložky) a pravý klik (vyřadit) se jen přidávají a odebírají.
     private void Toggle(string token, bool negate)
     {
         var tokens = input.text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-        bool hadPositive = tokens.RemoveAll(t => Same(t, token)) > 0;
         bool hadNegative = tokens.RemoveAll(t => Same(t, "-" + token)) > 0;
-        if (negate ? !hadNegative : !hadPositive) tokens.Add(negate ? "-" + token : token);
+        if (negate)
+        {
+            tokens.RemoveAll(t => Same(t, token));
+            int group = tokens.FindIndex(IsCategoryGroup);
+            if (group >= 0) tokens[group] = Without(tokens[group], token);
+            tokens.RemoveAll(t => t.Length == 0);
+            if (!hadNegative) tokens.Add("-" + token);
+        }
+        else if (!IsCategory(token))
+        {
+            if (tokens.RemoveAll(t => Same(t, token)) == 0) tokens.Add(token);
+        }
+        else
+        {
+            int group = tokens.FindIndex(IsCategoryGroup);
+            var parts = group >= 0 ? tokens[group].Split('|').ToList() : new List<string>();
+            bool had = parts.Any(p => Same(p, token));
+            bool additive = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+            if (additive) { if (had) parts.RemoveAll(p => Same(p, token)); else parts.Add(token); }
+            else parts = had && parts.Count == 1 ? new List<string>() : new List<string> { token };
+            string joined = string.Join("|", parts);
+            if (group >= 0) tokens[group] = joined; else tokens.Insert(0, joined);
+            tokens.RemoveAll(t => t.Length == 0);
+        }
         input.text = tokens.Count == 0 ? "" : string.Join(" ", tokens) + " ";
     }
+
+    private bool IsCategory(string token) => token.StartsWith("#") && Tags.Categories.Contains(token.Substring(1).ToLowerInvariant());
+
+    /// <summary>Token složený jen z kategorií oddělených '|' (#weapons nebo #weapons|#armor).</summary>
+    private bool IsCategoryGroup(string token) => token.Split('|').All(IsCategory);
+
+    private static string Without(string group, string token) => string.Join("|", group.Split('|').Where(p => !Same(p, token)));
 
     private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
@@ -132,7 +163,7 @@ internal sealed class SearchBar
         foreach (var (button, tag, _) in chips)
         {
             var label = button.GetComponentInChildren<Text>();
-            label.color = tokens.Any(t => Same(t, tag)) ? Ui.Orange : tokens.Any(t => Same(t, "-" + tag)) ? Ui.Missing : Ui.Muted;
+            label.color = tokens.Any(t => t.Split('|').Any(p => Same(p, tag))) ? Ui.Orange : tokens.Any(t => Same(t, "-" + tag)) ? Ui.Missing : Ui.Muted;
         }
     }
 
