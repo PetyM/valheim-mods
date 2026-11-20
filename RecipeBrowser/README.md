@@ -87,4 +87,4 @@ Install with r2modman or Thunderstore Mod Manager (BepInEx and Jotunn are instal
 Manually: put `RecipeBrowser.dll` into `BepInEx/plugins/`. Only the players who want it need the mod, the server does not.
 
 ## Source and issues
-Source code, bug reports and suggestions: [https://github.com/PetyM/valheim-mody](https://github.com/PetyM/valheim-mody). Licence MIT.
+Source code, bug reports and suggestions: [https://github.com/PetyM/valheim-mods](https://github.com/PetyM/valheim-mods). Licence MIT.

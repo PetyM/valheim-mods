@@ -1,7 +1,7 @@
 {
   "name": "RecipeBrowser",
   "version_number": "1.0.0",
-  "website_url": "https://github.com/PetyM/valheim-mody/tree/master/RecipeBrowser",
+  "website_url": "https://github.com/PetyM/valheim-mods/tree/master/RecipeBrowser",
   "description": "JEI-style recipe browser next to the inventory: search with tags, recipes, usages, sources and biomes for every item, bookmarks, R/U/A keys over any item. Works with modded items. Client only.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2360",

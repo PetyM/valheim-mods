@@ -14,7 +14,7 @@ cd LevelEasily && dotnet build      # nebo RecipeBrowser
 Jiná herní složka: `dotnet build -p:ValheimDir=/cesta/k/Valheim`.
 
 ## Vydání na Thunderstore
-Tým `PetyM`, zdrojáky na GitHubu `PetyM/valheim-mody`, licence MIT.
+Tým `PetyM`, zdrojáky na GitHubu `PetyM/valheim-mods`, licence MIT.
 1. Zvednout verzi v `[BepInPlugin]` v `Plugin.cs` a v `Thunderstore/manifest.json` (build zkontroluje, že sedí)
    a přidat záznam do `CHANGELOG.md`.
 2. `dotnet build -c Release` ve složce módu vyrobí `build/PetyM-<Mód>-<verze>.zip`

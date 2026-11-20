@@ -2,7 +2,7 @@
 
 Client-only BepInEx mod for Valheim (requires Jotunn). Adds **Level area** to the hoe menu: one click levels a rectangle
 snapped to the metre grid, for the same price as doing it by hand. Other players and the server do not need the mod.
-Detailed rules: [SPEC.md](https://github.com/PetyM/valheim-mody/blob/master/LevelEasily/SPEC.md).
+Detailed rules: [SPEC.md](https://github.com/PetyM/valheim-mods/blob/master/LevelEasily/SPEC.md).
 
 ## Usage
 - The preview shows a rectangle snapped to the metre grid (heightmap vertices) with points coloured by what happens to them:
@@ -35,4 +35,4 @@ Install with r2modman or Thunderstore Mod Manager (BepInEx and Jotunn are instal
 Manually: put `LevelEasily.dll` into `BepInEx/plugins/`. Only the players who want it need the mod, the server does not.
 
 ## Source and issues
-Source code, bug reports and suggestions: [https://github.com/PetyM/valheim-mody](https://github.com/PetyM/valheim-mody). Licence MIT.
+Source code, bug reports and suggestions: [https://github.com/PetyM/valheim-mods](https://github.com/PetyM/valheim-mods). Licence MIT.
