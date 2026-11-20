@@ -25,6 +25,9 @@ public sealed class Plugin : BaseUnityPlugin
     private const float ClaimWait = 0.5f;
     private const float PlayerClearance = 1.5f;
     private const float PlayerSafeRise = 0.5f;
+    private const int MaxWorkSounds = 6;
+    private const float MinWorkSoundSpacing = 0.3f;
+    private const float MaxWorkSoundSpacing = 0.7f;
     private static readonly Color Level = new(0.2f, 0.95f, 0.3f, 0.9f);
     private static readonly Color TooHigh = new(1f, 0.1f, 0.1f, 0.9f);
     private static readonly Color TooLow = new(0.1f, 0.35f, 1f, 0.9f);
@@ -320,9 +323,7 @@ public sealed class Plugin : BaseUnityPlugin
             {
                 Charge(player, fresh, paid);
             }
-            player.FaceLookDirection();
-            player.m_zanim.SetTrigger(hoe.m_shared.m_attack.m_attackAnimation);
-            PlayEffects(player, hoe, fresh, paid, written.Centre);
+            StartCoroutine(PlayWork(player, hoe, fresh, paid, written));
             player.m_lastToolUseTime = Time.time + Mathf.Max(0, paid.Seconds - player.m_placeDelay);
             plan = null;
             StartCoroutine(ResetGrassLater(written));
@@ -334,26 +335,64 @@ public sealed class Plugin : BaseUnityPlugin
     }
 
     /// <summary>
-    /// Sounds and particles of the vanilla actions the click stands for: the Level ground swing always (Piece.m_placeEffect
-    /// is what vanilla PlacePiece plays, the TerrainOp effect is the dust), Raise ground and a pickaxe hit when they were used.
+    /// Sounds and particles of the vanilla work the click stands for, spread over the time the hoe is blocked and over the
+    /// points where that work was done: Level ground swings (Piece.m_placeEffect, what vanilla PlacePiece plays, plus the
+    /// TerrainOp dust), Raise ground where stone was used and pickaxe terrain hits (weapon and attack effect, like
+    /// Attack.DoMeleeAttack, plus the dig debris of the dig prefab) where the pickaxe was used.
     /// </summary>
-    private void PlayEffects(Player player, ItemDrop.ItemData hoe, Budget paidFrom, Cost paid, Vector3 centre)
+    private IEnumerator PlayWork(Player player, ItemDrop.ItemData hoe, Budget paidFrom, Cost paid, AreaPlan written)
     {
-        var rotation = Quaternion.identity;
-        rates.LevelPiece.m_placeEffect.Create(centre, rotation);
-        rates.LevelOp.m_onPlacedEffect.Create(centre, rotation);
-        hoe.m_shared.m_buildEffect.Create(player.transform.position, rotation);
-        if (paid.RaiseSwings > 0)
+        var events = new List<(Vector3 at, System.Action<Vector3> play)>();
+        var changed = written.Vertices.Where(v => v.Selected).ToList();
+        var cut = changed.Where(v => v.PickVolume > 0).ToList();
+        var filled = changed.Where(v => v.StoneVolume > 0).ToList();
+        var digOp = paidFrom.Pickaxe != null ? rates.DigOp(paidFrom.Pickaxe) : null;
+
+        void Hoe(Vector3 at)
         {
-            rates.RaisePiece.m_placeEffect.Create(centre, rotation);
-            rates.RaiseOp.m_onPlacedEffect.Create(centre, rotation);
+            rates.LevelPiece.m_placeEffect.Create(at, Quaternion.identity);
+            rates.LevelOp.m_onPlacedEffect.Create(at, Quaternion.identity);
+            hoe.m_shared.m_buildEffect.Create(player.transform.position, Quaternion.identity);
         }
-        if (paid.PickHits > 0)
+        void Raise(Vector3 at)
         {
-            // Attack.DoMeleeAttack plays both the weapon's and the attack's terrain hit effect.
-            paidFrom.Pickaxe.m_shared.m_hitTerrainEffect.Create(centre, rotation);
-            paidFrom.Pickaxe.m_shared.m_attack.m_hitTerrainEffect.Create(centre, rotation);
+            rates.RaisePiece.m_placeEffect.Create(at, Quaternion.identity);
+            rates.RaiseOp.m_onPlacedEffect.Create(at, Quaternion.identity);
         }
+        void Pick(Vector3 at)
+        {
+            paidFrom.Pickaxe.m_shared.m_hitTerrainEffect.Create(at, Quaternion.identity);
+            paidFrom.Pickaxe.m_shared.m_attack.m_hitTerrainEffect.Create(at, Quaternion.identity);
+            if (digOp) digOp.m_onPlacedEffect.Create(at, Quaternion.identity);
+        }
+
+        int hoeEvents = Mathf.Clamp(paid.HoeSwings, 1, MaxWorkSounds);
+        int pickEvents = paidFrom.Pickaxe != null ? Mathf.Min(paid.PickHits, MaxWorkSounds) : 0;
+        int raiseEvents = Mathf.Min(paid.RaiseSwings, MaxWorkSounds);
+        // Interleave the kinds so cutting, filling and finishing sound like one job.
+        for (int i = 0; i < Mathf.Max(hoeEvents, Mathf.Max(pickEvents, raiseEvents)); i++)
+        {
+            if (i < pickEvents) events.Add((RandomPoint(cut), Pick));
+            if (i < raiseEvents) events.Add((RandomPoint(filled), Raise));
+            if (i < hoeEvents) events.Add((RandomPoint(changed), Hoe));
+        }
+
+        player.FaceLookDirection();
+        float spacing = Mathf.Clamp(paid.Seconds / events.Count, MinWorkSoundSpacing, MaxWorkSoundSpacing);
+        foreach (var (at, play) in events)
+        {
+            if (!player) yield break;
+            // The swing animation with every hoe or pickaxe sound, as long as the hoe is still in hand.
+            if (player.GetRightItem() == hoe) player.m_zanim.SetTrigger(hoe.m_shared.m_attack.m_attackAnimation);
+            play(at);
+            yield return new WaitForSeconds(spacing);
+        }
+    }
+
+    private static Vector3 RandomPoint(List<VertexPlan> vertices)
+    {
+        var v = vertices[Random.Range(0, vertices.Count)];
+        return new Vector3(v.Point.x, v.Goal, v.Point.z);
     }
 
     private void Charge(Player player, Budget paidFrom, Cost paid)

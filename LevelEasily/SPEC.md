@@ -65,9 +65,11 @@ be levelled and the readout below the crosshair shows how many points. Nothing a
    claimed zones and repeat all checks.
 3. Write `m_levelDelta = target − base height` (not `LevelTerrain`, which misses the target when the deltas sum beyond
    ±8 m), paint, `m_operations++`, `m_lastOpPoint/Radius`, `Save`, `Poke`.
-4. Only after a successful write deduct stamina, wear and stone, give dug-up material, play the swing animation and the
-   vanilla effects of the work done: Level ground (`Piece.m_placeEffect`, `TerrainOp.m_onPlacedEffect`, hoe `m_buildEffect`),
-   Raise ground when stone was used, pickaxe terrain hit (weapon and attack `m_hitTerrainEffect`) when the pickaxe was used.
+4. Only after a successful write deduct stamina, wear and stone, give dug-up material and play the work: a sequence of
+   vanilla effects with the swing animation, spread over the blocked time (0.3–0.7 s apart) and over random points where
+   that work was done, interleaved by kind, at most 6 of each: Level ground swings (`Piece.m_placeEffect`,
+   `TerrainOp.m_onPlacedEffect`, hoe `m_buildEffect`), Raise ground where stone was used, pickaxe terrain hits (weapon and
+   attack `m_hitTerrainEffect`, dig prefab `m_onPlacedEffect`) where the pickaxe was used.
 Any failure before step 3 = nothing is written or paid.
 
 ## Out of scope

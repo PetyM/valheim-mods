@@ -48,6 +48,10 @@ internal sealed class VanillaRates
         log.LogInfo($"Raise ground: {RaiseVolumePerSwing:0.00} m³ and {StonePerRaiseSwing}× {Stone.name} per swing");
     }
 
+    /// <summary>The terrain operation a tool spawns on a terrain hit (the pickaxe's dig prefab), or null.</summary>
+    public TerrainOp DigOp(ItemDrop.ItemData tool) =>
+        tool.m_shared.m_spawnOnHitTerrain ? tool.m_shared.m_spawnOnHitTerrain.GetComponentInChildren<TerrainOp>(true) : null;
+
     /// <summary>Effect prefab names, to check in the log which sounds and particles the mod plays.</summary>
     public static string Describe(EffectList effects) =>
         effects?.m_effectPrefabs == null || effects.m_effectPrefabs.Length == 0

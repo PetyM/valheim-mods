@@ -8,7 +8,8 @@ Detailed rules: [SPEC.md](SPEC.md).
 - The preview shows a rectangle snapped to the metre grid (heightmap vertices) with points coloured by what happens to them:
   green = level, red = cut, blue = fill, purple = out of reach (±8 m from the original terrain),
   grey = under a building or plant (skipped), dark red = no pickaxe, dimmed = not enough resources.
-- A click levels the area at once (with the vanilla sounds of the hoe, Raise ground and pickaxe, as used) and paints it with dirt (like vanilla Level ground, no grass grows on it).
+- A click levels the area at once and paints it with dirt (like vanilla Level ground, no grass grows on it).
+  While the hoe is blocked you hear and see the work: hoe swings, pickaxe hits and Raise ground over the area, as used.
   The cost and key hints are shown below the crosshair.
 - **Arrow keys** change the size (left/right = width relative to the camera, up/down = length), default 4 × 4 m, max 16 m.
 - The target is the terrain under the player (like vanilla). **L** locks the target to the top surface of the building
