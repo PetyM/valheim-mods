@@ -16,7 +16,7 @@ namespace LevelEasily;
 [BepInDependency(Jotunn.Main.ModGuid)]
 public sealed class Plugin : BaseUnityPlugin
 {
-    private const string Guid = "michal.leveleasily";
+    private const string Guid = "PetyM.LevelEasily";
     private const string PieceName = "LevelEasily_LevelArea";
     private const float FullColourDeviation = 1f;
     private const float AimDistance = 50f;

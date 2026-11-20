@@ -49,7 +49,7 @@ internal static class Locations
 
     // Location contents depend only on the game version and the installed mods, not on the world:
     // the scan result is cached on disk and rescanned only when that changes.
-    private static string CachePath => Path.Combine(BepInEx.Paths.CachePath, "michal.recipebrowser.locations.txt");
+    private static string CachePath => Path.Combine(BepInEx.Paths.CachePath, "PetyM.RecipeBrowser.locations.txt");
 
     private static string CacheKey(ZoneSystem zone)
     {

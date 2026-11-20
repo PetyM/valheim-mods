@@ -1,0 +1,10 @@
+{
+  "name": "LevelEasily",
+  "version_number": "0.2.0",
+  "website_url": "https://github.com/PetyM/valheim-mody",
+  "description": "Level a grid-snapped rectangle with one hoe click, for the same hoe swings, pickaxe hits, stone and stamina as doing it by hand. Client only.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2360",
+    "ValheimModding-Jotunn-2.30.2"
+  ]
+}

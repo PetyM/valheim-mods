@@ -60,7 +60,7 @@ as a fraction of the screen, so they survive resolution changes. The "Reset layo
 moves them back to the bottom strip. Bookmarks can be reordered by dragging.
 
 ## Configuration
-`BepInEx/config/michal.recipebrowser.cfg` (also in Configuration Manager):
+`BepInEx/config/PetyM.RecipeBrowser.cfg` (also in Configuration Manager):
 - `Keys`: Recipes, Usages, Bookmark, Back, Collapse.
 - `Display`: Rows (height of the default strip), Sort, Collapse results, Collapse bookmarks, Biome separators
   (when sorting by progression, a row with the biome name before each group, off by default).
@@ -70,7 +70,7 @@ moves them back to the bottom strip. Bookmarks can be reordered by dragging.
 - `Biomes`: Biome overrides (manual biome, e.g. `Chitin=ocean, MyModOre=plains`), Scan locations.
 - `Counts`: Nearby chests (Auto = only when CraftFromContainers or a similar mod is running, Always, Never)
   and Chest range.
-- Bookmarks are stored in `BepInEx/config/michal.recipebrowser.bookmarks.txt`.
+- Bookmarks are stored in `BepInEx/config/PetyM.RecipeBrowser.bookmarks.txt`.
 
 ## Catalog
 The catalog is built the first time you open the inventory in a world, and rebuilt when the number of recipes or items
@@ -78,15 +78,13 @@ changes (server sync), when spawn lists change (including modded ones) or when c
 and dungeon rooms are loaded in the background after entering the world (asset bundles in batches); once done,
 the catalog is rebuilt once and chests, pickups, traders and creatures from locations get the location's biome.
 Until then, chests only have a biome guessed from the prefab name. The result does not depend on the world, so it is
-cached in `BepInEx/cache/michal.recipebrowser.locations.txt` and the scan only runs again after a game or mod update
+cached in `BepInEx/cache/PetyM.RecipeBrowser.locations.txt` and the scan only runs again after a game or mod update
 (or when the set of locations changes). A summary (counts, time, hidden items by reason,
 locations) is logged under `RecipeBrowser.Data`.
 
-## Build
-```
-dotnet build
-```
-Run in this folder. The DLL is copied to `BepInEx/plugins/RecipeBrowser/` in the game folder after the build.
-Different game folder: `dotnet build -p:ValheimDir=/path/to/Valheim`.
+## Installation
+Install with r2modman or Thunderstore Mod Manager (BepInEx and Jotunn are installed as dependencies).
+Manually: put `RecipeBrowser.dll` into `BepInEx/plugins/`. Only the players who want it need the mod, the server does not.
 
-Specification: [SPEC.md](SPEC.md).
+## Source and issues
+Source code, bug reports and suggestions: [https://github.com/PetyM/valheim-mody](https://github.com/PetyM/valheim-mody). Licence MIT.

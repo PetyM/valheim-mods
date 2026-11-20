@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace RecipeBrowser;
 
-[BepInPlugin("michal.recipebrowser", "RecipeBrowser", "1.0.0")]
+[BepInPlugin("PetyM.RecipeBrowser", "RecipeBrowser", "1.0.0")]
 [BepInDependency(Jotunn.Main.ModGuid)]
 public sealed class Plugin : BaseUnityPlugin
 {
@@ -39,9 +39,9 @@ public sealed class Plugin : BaseUnityPlugin
         DataConfig.Bind(Config);
         UiConfig.Bind(Config);
         rows = Config.Bind("Display", "Rows", 5, new ConfigDescription("Number of rows in the bottom panels.", new AcceptableValueRange<int>(2, 10)));
-        new Harmony("michal.recipebrowser").PatchAll();
+        new Harmony("PetyM.RecipeBrowser").PatchAll();
         Browser.Log = Logger.LogInfo;
-        bookmarks = new Bookmarks(Path.Combine(BepInEx.Paths.ConfigPath, "michal.recipebrowser.bookmarks.txt"));
+        bookmarks = new Bookmarks(Path.Combine(BepInEx.Paths.ConfigPath, "PetyM.RecipeBrowser.bookmarks.txt"));
     }
 
     private void Update()

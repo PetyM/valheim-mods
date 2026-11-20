@@ -27,4 +27,30 @@
   <Target Name="Deploy" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ValheimDir)/BepInEx/plugins/$(AssemblyName)" />
   </Target>
+
+  <!-- Balíček pro Thunderstore: jen v Release, výstup build/PetyM-<Mód>-<verze>.zip. -->
+  <PropertyGroup>
+    <ThunderstoreTeam>PetyM</ThunderstoreTeam>
+    <ThunderstoreDir>$(MSBuildProjectDirectory)/Thunderstore</ThunderstoreDir>
+    <PackageOutDir>$(MSBuildThisFileDirectory)build</PackageOutDir>
+  </PropertyGroup>
+  <Target Name="Package" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <ManifestVersion>$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(ThunderstoreDir)/manifest.json')), '(?s).*"version_number"\s*:\s*"([^"]+)".*', '$1'))</ManifestVersion>
+      <PluginVersion>$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/Plugin.cs')), '(?s).*BepInPlugin\([^)]*"([0-9.]+)"\s*\).*', '$1'))</PluginVersion>
+      <PackageStage>$(PackageOutDir)/stage/$(AssemblyName)</PackageStage>
+      <PackageZip>$(PackageOutDir)/$(ThunderstoreTeam)-$(AssemblyName)-$(ManifestVersion).zip</PackageZip>
+    </PropertyGroup>
+    <Error Condition="'$(ManifestVersion)' != '$(PluginVersion)'"
+           Text="Verze v Thunderstore/manifest.json ($(ManifestVersion)) nesedí s [BepInPlugin] v Plugin.cs ($(PluginVersion))." />
+    <ItemGroup>
+      <PackageMeta Include="$(ThunderstoreDir)/manifest.json;$(ThunderstoreDir)/icon.png;$(MSBuildProjectDirectory)/README.md;$(MSBuildProjectDirectory)/CHANGELOG.md" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(PackageMeta.Identity)')" Text="Chybí %(PackageMeta.Identity)." />
+    <RemoveDir Directories="$(PackageStage)" />
+    <Copy SourceFiles="@(PackageMeta)" DestinationFolder="$(PackageStage)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PackageStage)/plugins" />
+    <ZipDirectory SourceDirectory="$(PackageStage)" DestinationFile="$(PackageZip)" Overwrite="true" />
+    <Message Importance="high" Text="Balíček: $(PackageZip)" />
+  </Target>
 </Project>
