@@ -29,7 +29,7 @@ internal readonly struct Cost
     public int AllSwings => HoeSwings + RaiseSwings;
 }
 
-/// <summary>Zdroje hráče a ceny jednotlivých úkonů v okamžiku výpočtu.</summary>
+/// <summary>Player resources and the price of each action at the time of calculation.</summary>
 internal sealed class Budget
 {
     public ItemDrop.ItemData Hoe;
@@ -70,14 +70,14 @@ internal sealed class Budget
         return budget;
     }
 
-    /// <summary>Kolik úderů nástroj ještě vydrží.</summary>
+    /// <summary>How many more hits the tool can take.</summary>
     private static float HitsLeft(ItemDrop.ItemData tool)
     {
         float wear = tool.m_shared.m_useDurabilityDrain * Game.m_durabilityRate;
         return tool.m_shared.m_useDurability && wear > 0 ? tool.m_durability / wear : float.PositiveInfinity;
     }
 
-    /// <summary>Stejný výpočet jako <c>Attack.GetAttackStamina</c> pro útok nástrojem, který není v ruce.</summary>
+    /// <summary>Same calculation as <c>Attack.GetAttackStamina</c> for an attack with a tool that is not in hand.</summary>
     private static float AttackStamina(Player player, ItemDrop.ItemData tool)
     {
         float stamina = tool.m_shared.m_attack.m_attackStamina;
@@ -98,7 +98,7 @@ internal sealed class Budget
             swings * PlaceDelay + pickHits * PickSeconds, Returned(pickVolume, yieldVolume));
     }
 
-    /// <summary>Průměrný vanilla výnos úderů, zaokrouhlený dolů, aby mód nedal víc než ruční kopání.</summary>
+    /// <summary>Average vanilla yield of the hits, rounded down so the mod never gives more than digging by hand.</summary>
     private int Returned(float pickVolume, float yieldVolume)
     {
         if (!Yield.Item || PickVolume <= 0) return 0;
@@ -115,8 +115,8 @@ internal sealed class Budget
         return Shortage.None;
     }
 
-    /// <summary>Vybere vrcholy, na které zdroje stačí, od nejbližších k hráči, a vrátí jejich cenu.</summary>
-    /// <param name="allowed">Jen vrcholy, které smí zápis změnit (např. jen v převzatých zónách).</param>
+    /// <summary>Selects the vertices the resources cover, nearest to the player first, and returns their cost.</summary>
+    /// <param name="allowed">Only vertices the write may change (e.g. only in claimed zones).</param>
     public (Cost cost, Shortage shortage) Select(AreaPlan plan, Vector3 player, VanillaRates rates, System.Func<VertexPlan, bool> allowed = null)
     {
         wanted.Clear();

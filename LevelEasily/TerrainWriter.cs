@@ -4,14 +4,14 @@ using UnityEngine;
 namespace LevelEasily;
 
 /// <summary>
-/// Zápis terénu bez módu na serveru: převezme <see cref="TerrainComp"/> dotčených zón a zapíše přímo do nich.
-/// Postup a rizika souběhu: kb/teren-zapis-bez-serveru.md.
+/// Terrain write without the mod on the server: takes over the <see cref="TerrainComp"/> of affected zones and writes into them directly.
+/// Procedure and race risks: kb/teren-zapis-bez-serveru.md.
 /// </summary>
 internal static class TerrainWriter
 {
     private static readonly List<Heightmap> Found = new();
 
-    /// <summary>Vrcholy, kterých se zápis může dotknout: měněné a rohy natíraných buněk.</summary>
+    /// <summary>Vertices the write may touch: changed ones and corners of painted cells.</summary>
     public static IEnumerable<VertexPlan> Touched(AreaPlan plan)
     {
         foreach (var v in plan.Vertices)
@@ -19,8 +19,8 @@ internal static class TerrainWriter
     }
 
     /// <summary>
-    /// Vytvoří nebo převezme kompilátory jen těch zón, kde leží dotčené vrcholy (vrchol na hraně patří oběma).
-    /// Null, když některý nejde použít.
+    /// Creates or takes over compilers only of zones containing touched vertices (a vertex on the edge belongs to both).
+    /// Null when any of them cannot be used.
     /// </summary>
     public static Dictionary<Heightmap, TerrainComp> Claim(AreaPlan plan)
     {
@@ -41,7 +41,7 @@ internal static class TerrainWriter
         return claimed.Count > 0 ? claimed : null;
     }
 
-    /// <summary>Leží vrchol jen v převzatých zónách?</summary>
+    /// <summary>Does the vertex lie only in claimed zones?</summary>
     public static bool Covers(Dictionary<Heightmap, TerrainComp> claimed, VertexPlan v)
     {
         Found.Clear();
@@ -52,7 +52,7 @@ internal static class TerrainWriter
         return true;
     }
 
-    /// <summary>Po čekání: pořád vlastníme a máme nejnovější data, výšky v meshi odpovídají deltám.</summary>
+    /// <summary>After the wait: we still own the zones and have the latest data, mesh heights match the deltas.</summary>
     public static bool Ready(Dictionary<Heightmap, TerrainComp> claimed)
     {
         foreach (var compiler in claimed.Values)
@@ -82,8 +82,8 @@ internal static class TerrainWriter
     }
 
     /// <summary>
-    /// Jako <c>TerrainComp.LevelTerrain</c> s poloměrem 0, ale delta se počítá od základní výšky:
-    /// LevelTerrain přičítá k oříznuté výšce a při součtu delt nad ±8 m by netrefil cíl.
+    /// Like <c>TerrainComp.LevelTerrain</c> with radius 0, but the delta is computed from the base height:
+    /// LevelTerrain adds to the clamped height and would miss the target when the deltas sum beyond ±8 m.
     /// </summary>
     private static void SetHeight(TerrainComp compiler, VertexPlan v)
     {
@@ -99,7 +99,7 @@ internal static class TerrainWriter
         compiler.m_modifiedHeight[index] = true;
     }
 
-    /// <summary>Buňka bude celá rovná a aspoň jeden její roh se teď mění (už rovné plochy se znovu nenatírají).</summary>
+    /// <summary>The cell will be fully level and at least one corner changes now (already level areas are not repainted).</summary>
     private static bool IsPaintedCell(AreaPlan plan, Vector2Int cell)
     {
         bool changed = false;
@@ -113,8 +113,8 @@ internal static class TerrainWriter
     }
 
     /// <summary>
-    /// Natře buňku hlínou přímo v datech kompilátoru (PaintCleared po vrcholech maže sousedy, viz KB).
-    /// Alfa zůstává: v Ashlands znamená lávu, jinde vegetaci.
+    /// Paints the cell with dirt directly in the compiler data (per-vertex PaintCleared wipes neighbours, see KB).
+    /// Alpha is kept: in the Ashlands it means lava, elsewhere vegetation.
     /// </summary>
     private static void PaintDirt(TerrainComp compiler, Vector2Int cell, bool preserveSoil)
     {
@@ -129,7 +129,7 @@ internal static class TerrainWriter
         compiler.m_modifiedPaint[index] = true;
     }
 
-    /// <summary>Obdělaná (g) nebo dlážděná (b) půda; v Deep North je g hloubka sněhu, ne obdělání.</summary>
+    /// <summary>Cultivated (g) or paved (b) ground; in the Deep North g is snow depth, not cultivation.</summary>
     private static bool IsWorkedSoil(Heightmap heightmap, Vector3 world, Color paint) =>
         paint.b > 0.5f || (paint.g > 0.5f && heightmap.GetBiome(world + new Vector3(0.5f, 0, 0.5f)) != Heightmap.Biome.DeepNorth);
 }

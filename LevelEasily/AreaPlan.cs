@@ -13,7 +13,7 @@ internal sealed class VertexPlan
     public bool Unreachable;
     public VertexState State;
     public float PickVolume;
-    /// <summary>Objem krumpáče nad maximální hloubkou: jen tam vanilla kopání může dát kámen.</summary>
+    /// <summary>Pickaxe volume above max depth: only there can vanilla digging drop stone.</summary>
     public float YieldVolume;
     public float StoneVolume;
     public bool Selected;
@@ -23,7 +23,7 @@ internal sealed class VertexPlan
     public bool FlatAfterWrite => !Unreachable && (State == VertexState.Level || Selected);
 }
 
-/// <summary>Co se má stát s každým vrcholem plochy a kolik práce to dá podle vanilla nástrojů.</summary>
+/// <summary>What should happen to each vertex of the area and how much work it takes with vanilla tools.</summary>
 internal sealed class AreaPlan
 {
     public const float ChangeThreshold = 0.01f;
@@ -59,7 +59,7 @@ internal sealed class AreaPlan
         return count;
     }
 
-    /// <param name="freeFill">Motyka smí dosypat do 1 m zadarmo (cíl není výš než terén pod hráčem).</param>
+    /// <param name="freeFill">The hoe may fill up to 1 m for free (the target is not above the terrain under the player).</param>
     public static AreaPlan Measure(RectInt area, float target, bool freeFill, bool hasPickaxe, GameObject ghost, int pieceMask)
     {
         var plan = new AreaPlan(area, target, freeFill);
@@ -81,7 +81,7 @@ internal sealed class AreaPlan
                 Unreachable = Mathf.Abs(goal - target) > ChangeThreshold,
             };
             Classify(vertex, smoothDelta, freeFill, hasPickaxe, ghost, pieceMask);
-            // Heightmap.AtMaxWorldLevelDepth: v hloubce 7,95 m pod základem vanilla kopání nic nedá.
+            // Heightmap.AtMaxWorldLevelDepth: 7.95 m below the base height vanilla digging drops nothing.
             vertex.YieldVolume = goal > baseHeight - MaxDepthYield ? vertex.PickVolume : 0;
             plan.Vertices.Add(vertex);
             plan.byGrid[grid] = vertex;
@@ -90,8 +90,8 @@ internal sealed class AreaPlan
     }
 
     /// <summary>
-    /// Výška před úpravami hráčů (proti ní hra ořezává ±8 m) a dosavadní smooth delta motyky.
-    /// Hra ořezává součet delt, ne každou zvlášť, proto clamp součtu.
+    /// Height before player edits (the game clamps ±8 m against it) and the current hoe smooth delta.
+    /// The game clamps the sum of the deltas, not each one, hence the clamp of the sum.
     /// </summary>
     public static (float baseHeight, float smoothDelta) BaseHeight(Heightmap heightmap, TerrainComp compiler, Vector3 point)
     {
@@ -119,7 +119,7 @@ internal sealed class AreaPlan
         }
         if (rise < 0)
         {
-            // Smooth delta motyky je ve vanilla oříznutá na ±1 m, hlouběji kope jen krumpáč.
+            // Vanilla clamps the hoe smooth delta to ±1 m, only the pickaxe digs deeper.
             v.PickVolume = Mathf.Max(0, -rise - (HoeReach + smoothDelta));
             v.State = v.PickVolume > 0 && !hasPickaxe ? VertexState.NeedsPickaxe : VertexState.Cut;
         }
