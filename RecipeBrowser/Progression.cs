@@ -33,6 +33,7 @@ internal static class Progression
         ["TrophyBonemass"] = Swamp, ["Wishbone"] = Swamp, ["DragonEgg"] = Mountain, ["TrophyDragonQueen"] = Mountain, ["DragonTear"] = Mountain,
         ["TrophyGoblinKing"] = Plains, ["YagluthDrop"] = Plains, ["TrophySeekerQueen"] = Mistlands, ["QueenDrop"] = Mistlands,
         ["TrophyFader"] = AshLands, ["FaderDrop"] = AshLands,
+        ["Wisp"] = Mistlands, // lured to the Wisp fountain (Wisplight), no drop table
     };
 
     public static int Count => Names.Length;

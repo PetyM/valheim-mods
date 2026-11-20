@@ -182,6 +182,8 @@ internal sealed class Catalog
             $"unknown biome for {All.Count(e => !e.Biome.HasValue)}. Skipped {skippedStations} processing prefabs not in any piece table. " +
             (Locations.Done ? $"Locations: {Locations.Places.Count} prefabs." : "Locations are still loading (chests only by name for now)."));
         DataConfig.Log.LogInfo("Hidden: " + filter.Summary());
+        if (Locations.Done)
+            DataConfig.Log.LogInfo("Unknown biome: " + string.Join(", ", All.Where(e => !e.Biome.HasValue).Select(e => $"{e.Key} ({e.Name}, {e.Mod})")));
     }
 
     // Contract for the UI:

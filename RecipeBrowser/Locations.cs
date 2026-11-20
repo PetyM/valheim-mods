@@ -1,4 +1,9 @@
+using System;
 using System.Collections;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using BepInEx.Bootstrap;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -37,10 +42,77 @@ internal static class Locations
         places = new Dictionary<string, SortedSet<int>>();
         creatures = new Dictionary<string, SortedSet<int>>();
         Done = false;
-        host.StartCoroutine(Scan(zone));
+        string key = CacheKey(zone);
+        if (LoadCache(key)) return;
+        host.StartCoroutine(Scan(zone, key));
     }
 
-    private static IEnumerator Scan(ZoneSystem zone)
+    // Location contents depend only on the game version and the installed mods, not on the world:
+    // the scan result is cached on disk and rescanned only when that changes.
+    private static string CachePath => Path.Combine(BepInEx.Paths.CachePath, "michal.recipebrowser.locations.txt");
+
+    private static string CacheKey(ZoneSystem zone)
+    {
+        var plugins = Chainloader.PluginInfos.Values.Select(p => $"{p.Metadata.GUID}@{p.Metadata.Version}").OrderBy(p => p, StringComparer.Ordinal);
+        var locations = zone.m_locations.Where(l => l != null && l.m_enable && l.m_prefab.IsValid)
+            .Select(l => $"{l.m_prefab.Name}:{(int)l.m_biome}").OrderBy(l => l, StringComparer.Ordinal);
+        string text = global::Version.GetVersionString() + "|" + string.Join(",", plugins) + "|" + string.Join(",", locations);
+        using var sha = SHA1.Create();
+        return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-", "");
+    }
+
+    private static bool LoadCache(string key)
+    {
+        try
+        {
+            if (!File.Exists(CachePath)) return false;
+            var lines = File.ReadAllLines(CachePath);
+            if (lines.Length == 0 || lines[0] != "key\t" + key) return false;
+            var loadedPlaces = new Dictionary<string, SortedSet<int>>();
+            var loadedCreatures = new Dictionary<string, SortedSet<int>>();
+            foreach (var line in lines.Skip(1))
+            {
+                var parts = line.Split('\t');
+                if (parts.Length != 3) continue;
+                var map = parts[0] == "P" ? loadedPlaces : parts[0] == "C" ? loadedCreatures : null;
+                map?.Add(parts[1], new SortedSet<int>(parts[2].Split(',').Select(int.Parse)));
+            }
+            Publish(loadedPlaces, loadedCreatures);
+            DataConfig.Log.LogInfo($"Locations: loaded from cache, {places.Count} prefabs, {creatures.Count} creatures.");
+            return true;
+        }
+        catch (Exception e)
+        {
+            DataConfig.Log.LogWarning($"Location cache unreadable, rescanning: {e.Message}");
+            return false;
+        }
+    }
+
+    private static void SaveCache(string key)
+    {
+        try
+        {
+            var lines = new List<string> { "key\t" + key };
+            lines.AddRange(places.Select(p => $"P\t{p.Key}\t{string.Join(",", p.Value)}"));
+            lines.AddRange(creatures.Select(c => $"C\t{c.Key}\t{string.Join(",", c.Value)}"));
+            Directory.CreateDirectory(Path.GetDirectoryName(CachePath));
+            File.WriteAllLines(CachePath, lines);
+        }
+        catch (Exception e)
+        {
+            DataConfig.Log.LogWarning($"Location cache not saved: {e.Message}");
+        }
+    }
+
+    private static void Publish(Dictionary<string, SortedSet<int>> newPlaces, Dictionary<string, SortedSet<int>> newCreatures)
+    {
+        places = newPlaces;
+        creatures = newCreatures;
+        Done = true;
+        Version++;
+    }
+
+    private static IEnumerator Scan(ZoneSystem zone, string key)
     {
         var watch = Stopwatch.StartNew();
         // Own maps, published only at the end: a scan of an old world must not write into the new one.
@@ -66,11 +138,9 @@ internal static class Locations
             for (var step = Load(rooms, ScanPrefab); step.MoveNext();) yield return step.Current;
         }
         if (scannedFor != zone) yield break;
-        places = foundPlaces;
-        creatures = foundCreatures;
-        Done = true;
-        Version++;
-        DataConfig.Log.LogInfo($"Locations: {locations.Count} locations, {roomCount} dungeon rooms, {places.Count} prefabs, {creatures.Count} creatures, {watch.ElapsedMilliseconds} ms.");
+        Publish(foundPlaces, foundCreatures);
+        SaveCache(key);
+        DataConfig.Log.LogInfo($"Locations: {locations.Count} locations, {roomCount} dungeon rooms, {places.Count} prefabs, {creatures.Count} creatures, {watch.ElapsedMilliseconds} ms (cached for next start).");
     }
 
     // In batches: LoadAsync holds a reference, Release returns it (the bundle is unloaded when nobody else holds it).
@@ -87,7 +157,7 @@ internal static class Locations
                 {
                     if (item.asset.IsLoaded && item.asset.Asset is { } go) scan(go, item.ranks);
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     DataConfig.Log.LogWarning($"Location {item.asset.Name} skipped: {e.Message}");
                 }

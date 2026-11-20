@@ -77,7 +77,9 @@ The catalog is built the first time you open the inventory in a world, and rebui
 changes (server sync), when spawn lists change (including modded ones) or when catalog settings change. Locations
 and dungeon rooms are loaded in the background after entering the world (asset bundles in batches); once done,
 the catalog is rebuilt once and chests, pickups, traders and creatures from locations get the location's biome.
-Until then, chests only have a biome guessed from the prefab name. A summary (counts, time, hidden items by reason,
+Until then, chests only have a biome guessed from the prefab name. The result does not depend on the world, so it is
+cached in `BepInEx/cache/michal.recipebrowser.locations.txt` and the scan only runs again after a game or mod update
+(or when the set of locations changes). A summary (counts, time, hidden items by reason,
 locations) is logged under `RecipeBrowser.Data`.
 
 ## Build
