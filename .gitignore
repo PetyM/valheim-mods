@@ -3,3 +3,7 @@ obj/
 build/
 repos/
 *.user
+
+# Jen lokálně, ne na GitHub
+kb/
+TODO.md
